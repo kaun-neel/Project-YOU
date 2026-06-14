@@ -1,17 +1,19 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import {
   DynamoDBDocumentClient,
-  PutCommand,
+  TransactWriteCommand,
   GetCommand,
-  QueryCommand,
 } from '@aws-sdk/lib-dynamodb'
 import { awsCredentialsProvider } from '@vercel/functions/oidc'
 import { nanoid } from 'nanoid'
 import bcrypt from 'bcryptjs'
-import { User } from './auth-types'
+import type { User } from './auth-types'
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME!
-const PK = process.env.DYNAMODB_TABLE_PARTITION_KEY || 'id'
+
+// The table uses a composite key: PK (hash) + SK (range)
+const HASH_KEY = 'PK'
+const SORT_KEY = 'SK'
 
 function getDocClient() {
   const client = new DynamoDBClient({
@@ -28,26 +30,30 @@ function getDocClient() {
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   const docClient = getDocClient()
-  // Use a GSI scan with filter — for a real app you'd add a GSI on email
-  // Here we use a FilterExpression on Scan via Query on the email-index GSI
-  // Since we only have a single table, we'll store a lookup record keyed by email
-  const result = await docClient.send(
+  // Email lookup record: PK=EMAIL#<email>, SK=LOOKUP
+  const lookup = await docClient.send(
     new GetCommand({
       TableName: TABLE_NAME,
-      Key: { [PK]: `email#${email.toLowerCase()}` },
+      Key: {
+        [HASH_KEY]: `EMAIL#${email.toLowerCase()}`,
+        [SORT_KEY]: 'LOOKUP',
+      },
     }),
   )
-  if (!result.Item) return null
-  const userId = result.Item.userId as string
-  return getUserById(userId)
+  if (!lookup.Item) return null
+  return getUserById(lookup.Item.userId as string)
 }
 
 export async function getUserById(id: string): Promise<User | null> {
   const docClient = getDocClient()
+  // User record: PK=USER#<id>, SK=PROFILE
   const result = await docClient.send(
     new GetCommand({
       TableName: TABLE_NAME,
-      Key: { [PK]: `user#${id}` },
+      Key: {
+        [HASH_KEY]: `USER#${id}`,
+        [SORT_KEY]: 'PROFILE',
+      },
     }),
   )
   return result.Item ? (result.Item as User) : null
@@ -72,27 +78,38 @@ export async function createUser(
     updatedAt: now,
   }
 
-  // Store the user record
+  // Write both records atomically so email lookup is always consistent
   await docClient.send(
-    new PutCommand({
-      TableName: TABLE_NAME,
-      Item: { [PK]: `user#${id}`, ...user },
-      ConditionExpression: 'attribute_not_exists(#pk)',
-      ExpressionAttributeNames: { '#pk': PK },
-    }),
-  )
-
-  // Store the email → userId lookup
-  await docClient.send(
-    new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        [PK]: `email#${email.toLowerCase()}`,
-        userId: id,
-        createdAt: now,
-      },
-      ConditionExpression: 'attribute_not_exists(#pk)',
-      ExpressionAttributeNames: { '#pk': PK },
+    new TransactWriteCommand({
+      TransactItems: [
+        {
+          Put: {
+            TableName: TABLE_NAME,
+            Item: {
+              [HASH_KEY]: `USER#${id}`,
+              [SORT_KEY]: 'PROFILE',
+              ...user,
+            },
+            ConditionExpression:
+              'attribute_not_exists(#pk)',
+            ExpressionAttributeNames: { '#pk': HASH_KEY },
+          },
+        },
+        {
+          Put: {
+            TableName: TABLE_NAME,
+            Item: {
+              [HASH_KEY]: `EMAIL#${email.toLowerCase()}`,
+              [SORT_KEY]: 'LOOKUP',
+              userId: id,
+              createdAt: now,
+            },
+            ConditionExpression:
+              'attribute_not_exists(#pk)',
+            ExpressionAttributeNames: { '#pk': HASH_KEY },
+          },
+        },
+      ],
     }),
   )
 
