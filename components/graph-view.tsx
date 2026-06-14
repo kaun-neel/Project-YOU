@@ -7,16 +7,16 @@ import { NodeDetailPanel } from './node-detail-panel'
 import { GraphLegend } from './graph-legend'
 import {
   nodeTypeMeta,
-  allTags,
-  nodes,
   type KnowledgeNode,
   type NodeType,
 } from '@/lib/mock-data'
+import { useCapture } from './capture-context'
 import { cn } from '@/lib/utils'
 
 const types = Object.keys(nodeTypeMeta) as NodeType[]
 
 export function GraphView() {
+  const { nodes, tags: allTags } = useCapture()
   const [selected, setSelected] = useState<KnowledgeNode | null>(null)
   const [activeTypes, setActiveTypes] = useState<NodeType[]>([...types])
   const [activeTag, setActiveTag] = useState<string | null>(null)

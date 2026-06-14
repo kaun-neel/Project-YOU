@@ -2,14 +2,14 @@
 
 import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
-import { StarField } from './star-field'
+import { ClosingPlasma } from '@/components/ui/closing-plasma'
 import {
-  nodes as allNodes,
-  edges as allEdges,
   nodeTypeMeta,
   type KnowledgeNode,
+  type KnowledgeEdge,
   type NodeType,
 } from '@/lib/mock-data'
+import { useCapture } from './capture-context'
 
 interface SimNode extends KnowledgeNode {
   x?: number
@@ -36,6 +36,7 @@ export function KnowledgeGraph({
   activeTypes,
   activeTag,
 }: Props) {
+  const { nodes: allNodes, edges: allEdges } = useCapture()
   const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const selectedRef = useRef<string | null | undefined>(selectedId)
@@ -130,7 +131,7 @@ export function KnowledgeGraph({
       .attr('r', (d) => radius(d))
       .attr('fill', (d) => nodeTypeMeta[d.type].color)
       .attr('filter', 'url(#node-glow)')
-      .attr('stroke', '#070b10')
+      .attr('stroke', 'rgba(0,0,0,0.55)')
       .attr('stroke-width', 1.5)
 
     // labels
@@ -250,7 +251,7 @@ export function KnowledgeGraph({
         .transition()
         .duration(220)
         .attr('stroke', (d) =>
-          sel === d.id ? 'var(--primary)' : '#070b10',
+          sel === d.id ? 'var(--primary)' : 'rgba(0,0,0,0.55)',
         )
         .attr('stroke-width', (d) => (sel === d.id ? 3 : 1.5))
 
@@ -312,7 +313,7 @@ export function KnowledgeGraph({
       ro.disconnect()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [allNodes.length])
 
   // Re-apply visual state when selection / filters change
   useEffect(() => {
@@ -321,9 +322,26 @@ export function KnowledgeGraph({
   }, [selectedId, activeTypes, activeTag])
 
   return (
-    <div ref={containerRef} className="relative size-full" style={{ background: '#070b10' }}>
-      <StarField />
-      <svg ref={svgRef} className="relative size-full touch-none" />
+    <div ref={containerRef} className="relative size-full overflow-hidden">
+      <ClosingPlasma
+        themeMode="dark"
+        speed={0.6}
+        turbulence={0.7}
+        mouseInfluence={0.4}
+        grain={0.6}
+        sparkle={0.5}
+        vignette={1}
+        opacity={1}
+        interactive
+        darkColorA="#0a0c12"
+        darkColorB="#111827"
+        darkColorC="#1e2d45"
+        lightColorA="#e8ecf4"
+        lightColorB="#c8d0e0"
+        lightColorC="#a0afca"
+        className="absolute inset-0 h-full w-full"
+      />
+      <svg ref={svgRef} className="relative z-10 size-full touch-none" />
       <style>{`
         @keyframes mem-node-pulse {
           0%, 100% { transform: scale(1); opacity: 0.16; }

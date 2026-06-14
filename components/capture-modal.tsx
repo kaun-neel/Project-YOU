@@ -30,13 +30,16 @@ const tabs: { id: Tab; label: string; icon: typeof FileText }[] = [
 ]
 
 export function CaptureModal() {
-  const { open, closeCapture } = useCapture()
+  const { open, closeCapture, addNode } = useCapture()
   const [tab, setTab] = useState<Tab>('note')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [url, setUrl] = useState('')
+  const [noteText, setNoteText] = useState('')
+  const [pdfName, setPdfName] = useState<string | null>(null)
+  const [voiceDuration, setVoiceDuration] = useState(0)
   const [showPreview, setShowPreview] = useState(false)
   const [render, setRender] = useState(false)
 
@@ -73,6 +76,29 @@ export function CaptureModal() {
   function handleSave() {
     setSaving(true)
     setTimeout(() => {
+      // Build a meaningful title from the captured content
+      const titleMap: Record<Tab, string> = {
+        note: noteText.trim().slice(0, 60) || 'Untitled note',
+        url: url.trim() || 'Saved URL',
+        pdf: pdfName ?? 'Uploaded PDF',
+        voice: `Voice memo (${Math.floor(voiceDuration / 60)}:${String(voiceDuration % 60).padStart(2, '0')})`,
+      }
+      const summaryMap: Record<Tab, string> = {
+        note: noteText.trim().slice(0, 200) || 'A thought captured from Quick Capture.',
+        url: `Saved from ${url.trim() || 'web'}`,
+        pdf: `PDF document: ${pdfName ?? 'untitled'}`,
+        voice: `Voice recording of ${voiceDuration}s captured from microphone.`,
+      }
+      addNode({
+        id: `n-${Date.now()}`,
+        title: titleMap[tab],
+        type: tab,
+        summary: summaryMap[tab],
+        tags: tags.length > 0 ? tags : ['uncategorised'],
+        source: tab === 'url' ? url : undefined,
+        createdAt: new Date().toISOString().slice(0, 10),
+        connections: 0,
+      })
       setSaving(false)
       setSaved(true)
       setTimeout(() => {
@@ -81,6 +107,9 @@ export function CaptureModal() {
           setSaved(false)
           setTags([])
           setUrl('')
+          setNoteText('')
+          setPdfName(null)
+          setVoiceDuration(0)
           setShowPreview(false)
           setTab('note')
         }, 250)
@@ -170,6 +199,8 @@ export function CaptureModal() {
                 {tab === 'note' && (
                   <textarea
                     autoFocus
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
                     placeholder="Start writing a thought, an idea, anything worth remembering..."
                     className="h-40 w-full resize-none border border-border bg-background/40 p-3.5 text-[15px] leading-[1.5] outline-none transition-colors placeholder:text-foreground/40 focus:border-gunmetal"
                   />
@@ -217,9 +248,9 @@ export function CaptureModal() {
                   </div>
                 )}
 
-                {tab === 'pdf' && <DropZone />}
+                {tab === 'pdf' && <DropZone onFile={setPdfName} />}
 
-                {tab === 'voice' && <VoiceRecorder active={tab === 'voice'} />}
+                {tab === 'voice' && <VoiceRecorder active={tab === 'voice'} onDuration={setVoiceDuration} />}
               </div>
 
               {/* Tags */}
@@ -323,10 +354,15 @@ function SavedState() {
   )
 }
 
-function DropZone() {
+function DropZone({ onFile }: { onFile?: (name: string) => void }) {
   const [over, setOver] = useState(false)
   const [file, setFile] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  function handleFile(name: string) {
+    setFile(name)
+    onFile?.(name)
+  }
 
   return (
     <div
@@ -338,7 +374,8 @@ function DropZone() {
       onDrop={(e) => {
         e.preventDefault()
         setOver(false)
-        setFile(e.dataTransfer.files[0]?.name ?? 'document.pdf')
+        const name = e.dataTransfer.files[0]?.name ?? 'document.pdf'
+        handleFile(name)
       }}
       onClick={() => inputRef.current?.click()}
       className={cn(
@@ -353,7 +390,10 @@ function DropZone() {
         type="file"
         accept=".pdf"
         className="hidden"
-        onChange={(e) => setFile(e.target.files?.[0]?.name ?? null)}
+        onChange={(e) => {
+          const name = e.target.files?.[0]?.name
+          if (name) handleFile(name)
+        }}
       />
       <div
         className={cn(
@@ -391,7 +431,7 @@ type RecorderStatus =
   | 'denied'
   | 'blocked'
 
-function VoiceRecorder({ active }: { active: boolean }) {
+function VoiceRecorder({ active, onDuration }: { active: boolean; onDuration?: (seconds: number) => void }) {
   const [status, setStatus] = useState<RecorderStatus>('idle')
   const [time, setTime] = useState(0)
   const [levels, setLevels] = useState<number[]>(() =>
@@ -546,6 +586,7 @@ function VoiceRecorder({ active }: { active: boolean }) {
     analyserRef.current = null
     setLevels(Array.from({ length: BAR_COUNT }, () => 0))
     setStatus('recorded')
+    onDuration?.(time)
   }
 
   function reset() {
