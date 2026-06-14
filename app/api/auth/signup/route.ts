@@ -44,14 +44,13 @@ export async function POST(req: Request) {
     return res
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
-    // Email already exists guard (DynamoDB ConditionalCheckFailedException)
-    if (msg.includes('ConditionalCheckFailed')) {
+    if (msg.includes('TransactionCanceledException') || msg.includes('ConditionalCheckFailed')) {
       return NextResponse.json(
         { error: 'An account with this email already exists.' },
         { status: 409 },
       )
     }
     console.error('[auth/signup]', err)
-    return NextResponse.json({ error: 'Sign up failed.' }, { status: 500 })
+    return NextResponse.json({ error: 'Sign up failed. Please try again.' }, { status: 500 })
   }
 }

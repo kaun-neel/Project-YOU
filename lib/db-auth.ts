@@ -3,7 +3,7 @@ import {
   DynamoDBDocumentClient,
   PutCommand,
   GetCommand,
-  QueryCommand,
+  TransactWriteCommand,
 } from '@aws-sdk/lib-dynamodb'
 import { awsCredentialsProvider } from '@vercel/functions/oidc'
 import { nanoid } from 'nanoid'
@@ -11,7 +11,6 @@ import bcrypt from 'bcryptjs'
 import { User } from './auth-types'
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME!
-const PK = process.env.DYNAMODB_TABLE_PARTITION_KEY || 'id'
 
 function getDocClient() {
   const client = new DynamoDBClient({
@@ -26,20 +25,22 @@ function getDocClient() {
   })
 }
 
+// PK=USER#<id>   SK=PROFILE  → holds the full user record
+// PK=EMAIL#<email>  SK=LOOKUP → holds only userId for fast email→id lookup
+
 export async function getUserByEmail(email: string): Promise<User | null> {
   const docClient = getDocClient()
-  // Use a GSI scan with filter — for a real app you'd add a GSI on email
-  // Here we use a FilterExpression on Scan via Query on the email-index GSI
-  // Since we only have a single table, we'll store a lookup record keyed by email
-  const result = await docClient.send(
+  const lookupResult = await docClient.send(
     new GetCommand({
       TableName: TABLE_NAME,
-      Key: { [PK]: `email#${email.toLowerCase()}` },
+      Key: {
+        PK: `EMAIL#${email.toLowerCase()}`,
+        SK: 'LOOKUP',
+      },
     }),
   )
-  if (!result.Item) return null
-  const userId = result.Item.userId as string
-  return getUserById(userId)
+  if (!lookupResult.Item) return null
+  return getUserById(lookupResult.Item.userId as string)
 }
 
 export async function getUserById(id: string): Promise<User | null> {
@@ -47,10 +48,16 @@ export async function getUserById(id: string): Promise<User | null> {
   const result = await docClient.send(
     new GetCommand({
       TableName: TABLE_NAME,
-      Key: { [PK]: `user#${id}` },
+      Key: {
+        PK: `USER#${id}`,
+        SK: 'PROFILE',
+      },
     }),
   )
-  return result.Item ? (result.Item as User) : null
+  if (!result.Item) return null
+  // Strip DynamoDB keys before returning
+  const { PK, SK, ...rest } = result.Item
+  return rest as User
 }
 
 export async function createUser(
@@ -72,27 +79,34 @@ export async function createUser(
     updatedAt: now,
   }
 
-  // Store the user record
+  // Write both records atomically
   await docClient.send(
-    new PutCommand({
-      TableName: TABLE_NAME,
-      Item: { [PK]: `user#${id}`, ...user },
-      ConditionExpression: 'attribute_not_exists(#pk)',
-      ExpressionAttributeNames: { '#pk': PK },
-    }),
-  )
-
-  // Store the email → userId lookup
-  await docClient.send(
-    new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        [PK]: `email#${email.toLowerCase()}`,
-        userId: id,
-        createdAt: now,
-      },
-      ConditionExpression: 'attribute_not_exists(#pk)',
-      ExpressionAttributeNames: { '#pk': PK },
+    new TransactWriteCommand({
+      TransactItems: [
+        {
+          Put: {
+            TableName: TABLE_NAME,
+            Item: {
+              PK: `USER#${id}`,
+              SK: 'PROFILE',
+              ...user,
+            },
+            ConditionExpression: 'attribute_not_exists(PK)',
+          },
+        },
+        {
+          Put: {
+            TableName: TABLE_NAME,
+            Item: {
+              PK: `EMAIL#${email.toLowerCase()}`,
+              SK: 'LOOKUP',
+              userId: id,
+              createdAt: now,
+            },
+            ConditionExpression: 'attribute_not_exists(PK)',
+          },
+        },
+      ],
     }),
   )
 
