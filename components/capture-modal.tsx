@@ -14,6 +14,7 @@ import {
   Play,
   Pause,
   RotateCcw,
+  ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCapture } from './capture-context'
@@ -382,7 +383,13 @@ function formatTime(seconds: number) {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
-type RecorderStatus = 'idle' | 'requesting' | 'recording' | 'recorded' | 'denied'
+type RecorderStatus =
+  | 'idle'
+  | 'requesting'
+  | 'recording'
+  | 'recorded'
+  | 'denied'
+  | 'blocked'
 
 function VoiceRecorder({ active }: { active: boolean }) {
   const [status, setStatus] = useState<RecorderStatus>('idle')
@@ -501,8 +508,24 @@ function VoiceRecorder({ active }: { active: boolean }) {
       timerRef.current = setInterval(() => setTime((t) => t + 1), 1000)
       setStatus('recording')
       visualize()
-    } catch {
-      setStatus('denied')
+    } catch (err) {
+      const name = (err as DOMException)?.name
+      const inIframe =
+        typeof window !== 'undefined' && window.self !== window.top
+      // Inside the v0 preview the app runs in a cross-origin iframe whose
+      // permissions policy blocks getUserMedia before the browser can prompt.
+      // Opening in its own tab lets the real browser permission prompt appear.
+      if (inIframe && name !== 'NotFoundError') {
+        setStatus('blocked')
+      } else {
+        setStatus('denied')
+      }
+    }
+  }
+
+  function openInNewTab() {
+    if (typeof window !== 'undefined') {
+      window.open(window.location.href, '_blank', 'noopener')
     }
   }
 
@@ -581,7 +604,27 @@ function VoiceRecorder({ active }: { active: boolean }) {
       </div>
 
       {/* Status / controls */}
-      {status === 'denied' ? (
+      {status === 'blocked' ? (
+        <div className="flex flex-col items-center gap-2.5 text-center">
+          <p className="flex items-center gap-1.5 text-[13px] text-foreground/70">
+            <MicOff className="size-4" />
+            The preview can&apos;t reach your microphone
+          </p>
+          <button
+            onClick={openInNewTab}
+            className="flex items-center gap-2 border border-foreground px-5 py-2.5 text-[13px] tracking-tight text-foreground transition-colors hover:border-gunmetal hover:text-gunmetal active:scale-95"
+          >
+            <ExternalLink className="size-3.5" />
+            OPEN IN NEW TAB
+          </button>
+          <button
+            onClick={startRecording}
+            className="text-[12px] text-foreground/50 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            Try again here
+          </button>
+        </div>
+      ) : status === 'denied' ? (
         <div className="flex flex-col items-center gap-2 text-center">
           <p className="flex items-center gap-1.5 text-[13px] text-destructive">
             <MicOff className="size-4" />
@@ -668,7 +711,9 @@ function VoiceRecorder({ active }: { active: boolean }) {
               ? 'Review your recording'
               : status === 'denied'
                 ? 'Enable mic in your browser settings'
-                : 'Click to speak'}
+                : status === 'blocked'
+                  ? 'Open in a tab to grant microphone access'
+                  : 'Click to speak'}
       </p>
     </div>
   )
