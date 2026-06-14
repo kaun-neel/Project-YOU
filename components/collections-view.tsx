@@ -53,7 +53,7 @@ export function CollectionsView() {
     <div className="scroll-thin h-full overflow-y-auto">
       <div className="mx-auto max-w-6xl px-5 py-10 sm:px-10 sm:py-14">
         {/* Header */}
-        <div className="flex flex-wrap items-end justify-between gap-5 border-b border-border pb-8">
+        <div className="flex flex-wrap items-end justify-between gap-5 border-b border-foreground/10 pb-8">
           <div>
             <p
               className="text-[15px] tracking-tight text-foreground/60"

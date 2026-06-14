@@ -46,12 +46,12 @@ export function SettingsPanel({ open, onClose, user }: SettingsPanelProps) {
       {/* Drawer */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r border-border/60 bg-background shadow-2xl transition-transform duration-500 ease-fluid',
+          'fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r border-foreground/10 bg-background/40 backdrop-blur-md shadow-2xl transition-transform duration-500 ease-fluid',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/40 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-foreground/10 px-5 py-4">
           <span className="text-[13px] uppercase tracking-[0.12em] text-foreground/60">
             Settings
           </span>
@@ -64,7 +64,7 @@ export function SettingsPanel({ open, onClose, user }: SettingsPanelProps) {
         </div>
 
         {/* Tab nav */}
-        <div className="flex border-b border-border/40">
+        <div className="flex border-b border-foreground/10">
           {([
             { id: 'user', icon: User, label: 'Account' },
             { id: 'preferences', icon: Sliders, label: 'Preferences' },

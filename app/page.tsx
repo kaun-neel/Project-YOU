@@ -14,7 +14,7 @@ interface UserInfo {
   name: string
 }
 
-// Stage is module-scoped: logo click returns to entry, never re-shows signin
+// Module scope: entry/search state persists when logo clicked, never back to signin
 let _persistedStage: Stage | null = null
 
 export default function Home() {
