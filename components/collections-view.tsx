@@ -85,7 +85,7 @@ export function CollectionsView() {
         </div>
 
         {/* Grid */}
-        <div className="mt-10 grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-px border border-foreground/8 bg-foreground/8 sm:grid-cols-2 lg:grid-cols-3">
           {allCollections.map((c, i) => {
             const items = c.nodeIds
               .map((id) => allNodes.find((n) => n.id === id))
@@ -96,7 +96,7 @@ export function CollectionsView() {
                 key={c.id}
                 onClick={() => setOpen(c)}
                 className={cn(
-                  'animate-fade-up group flex flex-col bg-background p-6 text-left transition-colors duration-300 hover:bg-card',
+                  'animate-fade-up group flex flex-col bg-background p-6 text-left transition-colors duration-300 hover:bg-foreground/5',
                   grouping && 'animate-pulse',
                 )}
                 style={{ animationDelay: `${i * 70}ms` }}

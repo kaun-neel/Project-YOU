@@ -24,8 +24,8 @@ function Shell({
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
       <TopNav variant="app" reveal={true} onCapture={openCapture} onLogoClick={onLogoClick} user={user} />
-      {/* top padding clears the floating nav */}
-      <main className="min-h-0 flex-1 overflow-hidden pt-[72px] sm:pt-[88px]">
+      {/* top padding clears the floating nav pill (approx 56px pill + 16px top offset = 72px) */}
+      <main className="min-h-0 flex-1 overflow-hidden pt-[72px]">
         {children}
       </main>
       <CaptureModal />

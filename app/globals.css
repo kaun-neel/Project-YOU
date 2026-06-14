@@ -59,26 +59,26 @@
   --slate: #495764;
 
   /* Semantic */
-  --background: #2e3a42;
+  --background: #252f36;
   --foreground: #fffdf9;
-  --surface: #364249;
-  --card: #364249;
+  --surface: #252f36;
+  --card: #252f36;
   --card-foreground: #fffdf9;
-  --popover: #1c2428;
+  --popover: #1a2228;
   --popover-foreground: #fffdf9;
 
   --primary: #7a95aa;
   --primary-foreground: #fffdf9;
-  --secondary: #3d4e58;
+  --secondary: #2e3a42;
   --secondary-foreground: #fffdf9;
-  --muted: #3d4e58;
-  --muted-foreground: #a3b8c6;
+  --muted: #2e3a42;
+  --muted-foreground: #8fa5b5;
   --accent: #7a95aa;
   --accent-foreground: #fffdf9;
   --destructive: #c98b8b;
 
-  --border: #455460;
-  --input: #455460;
+  --border: #374450;
+  --input: #374450;
   --ring: #7a95aa;
 
   /* Knowledge-graph node tints — monochrome bone → gunmetal */

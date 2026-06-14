@@ -135,7 +135,7 @@ function SearchViewInner() {
   return (
     <div className="flex h-full">
       {/* History rail */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-foreground/10 bg-background/30 backdrop-blur-sm lg:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-foreground/8 bg-transparent lg:flex">
         <div className="p-4">
           <button
             onClick={() => window.location.reload()}
@@ -164,7 +164,7 @@ function SearchViewInner() {
       </aside>
 
       {/* Chat area */}
-      <main className="relative flex flex-1 flex-col">
+      <main className="relative flex flex-1 flex-col bg-transparent">
         {/* Messages */}
         <div
           ref={scrollRef}
