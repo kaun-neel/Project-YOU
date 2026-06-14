@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   ArrowUp,
@@ -30,7 +30,7 @@ const typeIcon: Record<NodeType, typeof FileText> = {
   voice: Mic,
 }
 
-export function SearchView() {
+function SearchViewInner() {
   const params = useSearchParams()
   const { nodes: capturedNodes } = useCapture()
   const [activeThread, setActiveThread] = useState('t1')
@@ -251,5 +251,13 @@ function ThinkingBubble() {
       </div>
       <style>{`@keyframes mem-dot{0%,60%,100%{opacity:0.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}`}</style>
     </div>
+  )
+}
+
+export function SearchView() {
+  return (
+    <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="size-5 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/70" /></div>}>
+      <SearchViewInner />
+    </Suspense>
   )
 }

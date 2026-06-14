@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -64,6 +65,35 @@ interface UserInfo {
   name: string
 }
 
+function NavLinks({ reveal }: { reveal: boolean }) {
+  const pathname = usePathname()
+  return (
+    <ul className="flex items-center gap-4 sm:gap-7">
+      {navItems.map((item) => {
+        const active =
+          item.href === '/'
+            ? pathname === '/'
+            : pathname.startsWith(item.href)
+        return (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              className={cn(
+                'text-[13px] tracking-tight transition-colors duration-300 sm:text-[14px]',
+                active
+                  ? 'text-foreground'
+                  : 'text-foreground/55 hover:text-foreground',
+              )}
+            >
+              {item.label}
+            </Link>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 export function TopNav({
   variant = 'app',
   onCapture,
@@ -77,8 +107,6 @@ export function TopNav({
   reveal?: boolean
   user?: UserInfo | null
 }) {
-  const pathname = usePathname()
-
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-[60]">
       <nav className="pointer-events-auto mx-auto flex max-w-[1600px] items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
@@ -98,29 +126,9 @@ export function TopNav({
               reveal ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0',
             )}
           >
-            <ul className="flex items-center gap-4 sm:gap-7">
-              {navItems.map((item) => {
-                const active =
-                  item.href === '/'
-                    ? pathname === '/'
-                    : pathname.startsWith(item.href)
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        'text-[13px] tracking-tight transition-colors duration-300 sm:text-[14px]',
-                        active
-                          ? 'text-foreground'
-                          : 'text-foreground/55 hover:text-foreground',
-                      )}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
+            <Suspense fallback={<div className="h-5 w-48" />}>
+              <NavLinks reveal={reveal} />
+            </Suspense>
             {onCapture && (
               <button
                 onClick={onCapture}

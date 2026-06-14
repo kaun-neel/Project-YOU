@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { SignInPage } from '@/components/sign-in-page'
 import { EntryExperience } from '@/components/entry-experience'
 import { AppShell } from '@/components/app-shell'
@@ -14,7 +14,7 @@ interface UserInfo {
   name: string
 }
 
-// Keep stage in module-level so logo click navigates back to entry, not signin
+// Persisted stage: keeps the user on 'entry' when logo is clicked, never back to signin
 let _persistedStage: Stage | null = null
 
 export default function Home() {
@@ -62,10 +62,12 @@ export default function Home() {
     return <EntryExperience onEnter={() => advance('graph')} />
 
   return (
-    <div style={{ animation: 'mem-blur-in 0.9s cubic-bezier(0.16,1,0.3,1) both' }}>
-      <AppShell user={user} onLogoClick={() => advance('entry')}>
-        <GraphView user={user} />
-      </AppShell>
-    </div>
+    <Suspense fallback={<div className="h-dvh bg-background" />}>
+      <div style={{ animation: 'mem-blur-in 0.9s cubic-bezier(0.16,1,0.3,1) both' }}>
+        <AppShell user={user} onLogoClick={() => advance('entry')}>
+          <GraphView user={user} />
+        </AppShell>
+      </div>
+    </Suspense>
   )
 }
