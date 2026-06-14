@@ -1,3 +1,4 @@
+import { streamText } from 'ai'
 import { NextRequest } from 'next/server'
 
 export async function POST(req: NextRequest) {
@@ -7,50 +8,32 @@ export async function POST(req: NextRequest) {
     return new Response('Query required', { status: 400 })
   }
 
-  const contextBlock =
-    Array.isArray(nodes) && nodes.length > 0
-      ? nodes
-          .map(
-            (n: { title: string; type: string; summary: string; tags: string[]; source?: string }) =>
-              `[${n.type.toUpperCase()}] "${n.title}"\nSummary: ${n.summary}\nTags: ${n.tags.join(', ')}${n.source ? `\nSource: ${n.source}` : ''}`,
-          )
-          .join('\n\n')
-      : 'No notes captured yet.'
+  // Build a context block from the user's actual captured nodes
+  const contextBlock = Array.isArray(nodes) && nodes.length > 0
+    ? nodes
+        .map(
+          (n: { title: string; type: string; summary: string; tags: string[]; source?: string }) =>
+            `[${n.type.toUpperCase()}] "${n.title}"\nSummary: ${n.summary}\nTags: ${n.tags.join(', ')}${n.source ? `\nSource: ${n.source}` : ''}`,
+        )
+        .join('\n\n')
+    : 'No notes captured yet.'
 
-  const systemPrompt = `You are a personal knowledge assistant. Answer ONLY from the knowledge base below.
-Always cite specific note titles. Be concise. If not in the knowledge base, say so.
+  const result = streamText({
+    model: 'openai/gpt-4o-mini',
+    system: `You are a personal knowledge assistant. The user has captured notes, PDFs, URLs, and voice memos. Your job is to answer questions about their knowledge base with precision.
+
+RULES:
+- ONLY use information from the provided knowledge base context below.
+- Always cite which specific notes you are drawing from by referencing their titles.
+- If the information is not in the knowledge base, say so clearly.
+- Be concise and direct. Do not pad your response.
+- Speak in first person about "your notes" or "what you've saved".
 
 KNOWLEDGE BASE:
-${contextBlock}`
-
-  const upstream = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ''}`,
-    },
-    body: JSON.stringify({
-      model: 'openai/gpt-4o-mini',
-      stream: true,
-      max_tokens: 600,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: query },
-      ],
-    }),
+${contextBlock}`,
+    messages: [{ role: 'user', content: query }],
+    maxOutputTokens: 600,
   })
 
-  if (!upstream.ok) {
-    const err = await upstream.text()
-    return new Response(err, { status: upstream.status })
-  }
-
-  // Pipe the SSE stream directly to the client
-  return new Response(upstream.body, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    },
-  })
+  return result.toUIMessageStreamResponse()
 }
