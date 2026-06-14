@@ -40,46 +40,47 @@ export function GraphView() {
 
   return (
     <div className="relative flex h-full">
-      {/* Filter sidebar */}
+      {/* Filter rail */}
       <div
         className={cn(
-          'absolute inset-y-0 left-0 z-30 w-64 shrink-0 overflow-y-auto border-r border-border bg-card/95 backdrop-blur-md transition-transform duration-300 md:relative md:z-10 md:translate-x-0',
+          'absolute inset-y-0 left-0 z-30 w-64 shrink-0 overflow-y-auto border-r border-border bg-background/95 backdrop-blur-md transition-transform duration-500 ease-fluid md:relative md:z-10 md:translate-x-0',
           showFilters ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="size-4 text-primary" />
-            <h2 className="font-heading text-sm font-semibold">Filters</h2>
+            <SlidersHorizontal className="size-3.5 text-foreground/70" />
+            <h2 className="text-[13px] uppercase tracking-[0.12em] text-foreground/70">
+              Filters
+            </h2>
           </div>
           <button
             onClick={reset}
-            className="flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+            className="flex items-center gap-1 text-[11px] tracking-tight text-foreground/50 transition-colors hover:text-foreground"
           >
             <RotateCcw className="size-3" />
             Reset
           </button>
         </div>
 
-        <div className="p-4">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="px-5 py-5">
+          <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-foreground/45">
             Type
           </p>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {types.map((t) => {
               const on = activeTypes.includes(t)
               return (
                 <button
                   key={t}
                   onClick={() => toggleType(t)}
-                  className="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-secondary"
+                  className="group flex items-center gap-3 px-1 py-2 text-[15px] transition-colors"
                 >
                   <span
                     className={cn(
-                      'flex size-4 items-center justify-center rounded border transition-colors',
-                      on ? 'border-transparent' : 'border-border',
+                      'flex size-4 items-center justify-center border transition-colors',
+                      on ? 'border-foreground bg-foreground' : 'border-border',
                     )}
-                    style={on ? { background: nodeTypeMeta[t].color } : undefined}
                   >
                     {on && <Check className="size-3 text-background" />}
                   </span>
@@ -87,7 +88,11 @@ export function GraphView() {
                     className="size-2 rounded-full"
                     style={{ background: nodeTypeMeta[t].color }}
                   />
-                  <span className={on ? 'text-foreground' : 'text-muted-foreground'}>
+                  <span
+                    className={
+                      on ? 'text-foreground' : 'text-foreground/50'
+                    }
+                  >
                     {nodeTypeMeta[t].label}
                   </span>
                 </button>
@@ -96,8 +101,8 @@ export function GraphView() {
           </div>
         </div>
 
-        <div className="border-t border-border p-4">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="border-t border-border px-5 py-5">
+          <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-foreground/45">
             Tag
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -108,10 +113,10 @@ export function GraphView() {
                   key={tag}
                   onClick={() => setActiveTag(on ? null : tag)}
                   className={cn(
-                    'rounded px-2 py-1 font-mono text-[11px] transition-colors',
+                    'border px-2 py-1 text-[11px] tracking-tight transition-colors',
                     on
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-muted-foreground hover:text-foreground',
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-border text-foreground/55 hover:border-gunmetal hover:text-foreground',
                   )}
                 >
                   {tag}
@@ -121,8 +126,8 @@ export function GraphView() {
           </div>
         </div>
 
-        <div className="border-t border-border p-4">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="border-t border-border px-5 py-5">
+          <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-foreground/45">
             Date range
           </p>
           <input
@@ -130,16 +135,16 @@ export function GraphView() {
             min={0}
             max={100}
             defaultValue={100}
-            className="w-full accent-primary"
+            className="w-full accent-gunmetal"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+          <div className="mt-1.5 flex justify-between text-[10px] text-foreground/45">
             <span>Jan 2025</span>
             <span>Now</span>
           </div>
         </div>
 
-        <div className="border-t border-border p-4">
-          <p className="text-xs text-muted-foreground">
+        <div className="border-t border-border px-5 py-5">
+          <p className="text-[13px] text-foreground/55">
             Showing <span className="text-foreground">{filtered}</span> of{' '}
             {nodes.length} nodes
           </p>
@@ -148,10 +153,20 @@ export function GraphView() {
 
       {/* Stage */}
       <div className="relative min-h-0 flex-1">
+        {/* Section label */}
+        <div className="pointer-events-none absolute left-5 top-4 z-20 hidden sm:block">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-foreground/45">
+            Your memory
+          </p>
+          <p className="text-heading-sm font-normal text-foreground">
+            {nodes.length} ideas, refracted
+          </p>
+        </div>
+
         {/* Mobile filter toggle */}
         <button
           onClick={() => setShowFilters((s) => !s)}
-          className="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs text-foreground shadow-sm md:hidden"
+          className="absolute left-5 top-4 z-20 flex items-center gap-1.5 border border-border bg-background/80 px-2.5 py-1.5 text-[12px] tracking-tight text-foreground backdrop-blur-sm md:hidden"
         >
           <SlidersHorizontal className="size-3.5" />
           Filters

@@ -21,10 +21,10 @@ export const nodeTypeMeta: Record<
   NodeType,
   { label: string; color: string; varName: string }
 > = {
-  note: { label: 'Note', color: '#5b8def', varName: 'var(--node-note)' },
-  url: { label: 'URL', color: '#4ecdc4', varName: 'var(--node-url)' },
-  pdf: { label: 'PDF', color: '#f7a76c', varName: 'var(--node-pdf)' },
-  voice: { label: 'Voice', color: '#c17af7', varName: 'var(--node-voice)' },
+  note: { label: 'Note', color: '#fffdf9', varName: 'var(--node-note)' },
+  url: { label: 'URL', color: '#cdd6dd', varName: 'var(--node-url)' },
+  pdf: { label: 'PDF', color: '#a3b2bf', varName: 'var(--node-pdf)' },
+  voice: { label: 'Voice', color: '#6f879c', varName: 'var(--node-voice)' },
 }
 
 export const nodes: KnowledgeNode[] = [
@@ -231,7 +231,7 @@ export const collections: Collection[] = [
       'Core papers and notes on transformers, embeddings, and the ideas powering modern AI.',
     nodeIds: ['n1', 'n3', 'n7', 'n11', 'n14'],
     aiGenerated: true,
-    accent: '#5b8def',
+    accent: '#fffdf9',
   },
   {
     id: 'c2',
@@ -240,7 +240,7 @@ export const collections: Collection[] = [
       'Systems and rituals for capturing and connecting what you learn over time.',
     nodeIds: ['n2', 'n4', 'n10', 'n13'],
     aiGenerated: true,
-    accent: '#4ecdc4',
+    accent: '#cdd6dd',
   },
   {
     id: 'c3',
@@ -249,7 +249,7 @@ export const collections: Collection[] = [
       'Everything about modeling knowledge as connected data and querying it efficiently.',
     nodeIds: ['n5', 'n6', 'n9', 'n15'],
     aiGenerated: true,
-    accent: '#f7a76c',
+    accent: '#a3b2bf',
   },
   {
     id: 'c4',
@@ -257,7 +257,7 @@ export const collections: Collection[] = [
     description: 'Sparks for building Mem — naming, calm interfaces, and UX direction.',
     nodeIds: ['n8', 'n12'],
     aiGenerated: false,
-    accent: '#c17af7',
+    accent: '#6f879c',
   },
 ]
 

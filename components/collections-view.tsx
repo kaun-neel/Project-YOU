@@ -2,14 +2,13 @@
 
 import { useState } from 'react'
 import {
-  Sparkles,
   Plus,
-  FolderTree,
   FileText,
   Link2,
   Upload,
   Mic,
   Wand2,
+  ArrowUpRight,
 } from 'lucide-react'
 import {
   collections,
@@ -31,16 +30,19 @@ export function CollectionsView() {
 
   return (
     <div className="scroll-thin h-full overflow-y-auto">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-6xl px-5 py-10 sm:px-10 sm:py-14">
         {/* Header */}
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="animate-fade-up">
-            <h1 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
-              Collections
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Auto-grouped clusters of related ideas, suggested by Mem.
+        <div className="flex flex-wrap items-end justify-between gap-5 border-b border-border pb-8">
+          <div>
+            <p
+              className="text-[15px] tracking-tight text-foreground/60"
+              style={{ animation: 'mem-fade-up 0.7s cubic-bezier(0.16,1,0.3,1) both' }}
+            >
+              Refracted by meaning
             </p>
+            <h1 className="text-heading mt-3 max-w-[14ch] font-normal text-foreground text-balance">
+              Your <span className="font-bold">collections</span>
+            </h1>
           </div>
           <button
             onClick={() => {
@@ -48,37 +50,24 @@ export function CollectionsView() {
               setTimeout(() => setGrouping(false), 1600)
             }}
             disabled={grouping}
-            className="flex items-center gap-2 rounded-md bg-primary/15 px-3.5 py-2 text-sm font-medium text-primary ring-1 ring-primary/30 transition-colors hover:bg-primary/25 disabled:opacity-70"
+            className="flex items-center gap-2 border border-foreground px-4 py-3 text-[14px] tracking-tight text-foreground transition-colors hover:border-gunmetal hover:text-gunmetal disabled:opacity-60"
           >
             {grouping ? (
               <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
-                Grouping...
+                <span className="size-3.5 animate-spin rounded-full border border-foreground/40 border-t-foreground" />
+                GROUPING...
               </>
             ) : (
               <>
                 <Wand2 className="size-4" />
-                Let AI group my notes
+                LET AI GROUP MY NOTES
               </>
             )}
           </button>
         </div>
 
         {/* Grid */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Create card */}
-          <button className="group flex min-h-44 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card/40 p-5 text-center transition-all duration-200 hover:border-primary/40 hover:bg-card">
-            <span className="flex size-10 items-center justify-center rounded-full bg-secondary transition-transform duration-200 group-hover:scale-110">
-              <Plus className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
-            </span>
-            <span className="text-sm font-medium text-foreground">
-              Create collection
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Manual, or let AI group
-            </span>
-          </button>
-
+        <div className="mt-10 grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
           {collections.map((c, i) => {
             const items = c.nodeIds
               .map((id) => nodes.find((n) => n.id === id))
@@ -88,82 +77,78 @@ export function CollectionsView() {
               <div
                 key={c.id}
                 className={cn(
-                  'animate-fade-up group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-black/20',
+                  'animate-fade-up group flex flex-col bg-background p-6 transition-colors duration-300 hover:bg-card',
                   grouping && 'animate-pulse',
                 )}
-                style={{ animationDelay: `${i * 60}ms` }}
+                style={{ animationDelay: `${i * 70}ms` }}
               >
-                {/* Accent bar */}
-                <div
-                  className="h-1 w-full"
-                  style={{ background: c.accent }}
-                />
-                <div className="flex flex-1 flex-col p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <span
-                      className="flex size-9 items-center justify-center rounded-lg"
-                      style={{ background: `${c.accent}22` }}
-                    >
-                      <FolderTree
-                        className="size-4.5"
-                        style={{ color: c.accent }}
-                      />
+                <div className="flex items-start justify-between gap-2">
+                  <span
+                    className="size-3 rounded-full"
+                    style={{ background: c.accent }}
+                  />
+                  {c.aiGenerated && (
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-foreground/45">
+                      AI summary
                     </span>
-                    {c.aiGenerated && (
-                      <span className="flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary ring-1 ring-primary/25">
-                        <Sparkles className="size-2.5" />
-                        AI Summary
-                      </span>
-                    )}
-                  </div>
+                  )}
+                </div>
 
-                  <h3 className="mt-3 font-heading text-[15px] font-semibold leading-snug text-balance">
-                    {c.title}
-                  </h3>
-                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                    {c.description}
-                  </p>
+                <h3 className="mt-5 text-[22px] font-normal leading-[1.2] text-balance">
+                  {c.title}
+                </h3>
+                <p className="mt-2 line-clamp-2 text-[14px] leading-[1.5] text-foreground/60">
+                  {c.description}
+                </p>
 
-                  {/* node previews */}
-                  <div className="mt-3 flex flex-col gap-1">
-                    {items.map((n) => {
-                      if (!n) return null
-                      const meta = nodeTypeMeta[n.type]
-                      const Icon = typeIcon[n.type]
-                      return (
-                        <div
-                          key={n.id}
-                          className="flex items-center gap-2 rounded-md bg-background/50 px-2 py-1.5"
-                        >
-                          <span
-                            className="flex size-4 items-center justify-center rounded"
-                            style={{ background: `${meta.color}22` }}
-                          >
-                            <Icon
-                              className="size-2.5"
-                              style={{ color: meta.color }}
-                            />
-                          </span>
-                          <span className="truncate text-[11px] text-foreground/80">
-                            {n.title}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
+                {/* node previews */}
+                <div className="mt-5 flex flex-col">
+                  {items.map((n) => {
+                    if (!n) return null
+                    const meta = nodeTypeMeta[n.type]
+                    const Icon = typeIcon[n.type]
+                    return (
+                      <div
+                        key={n.id}
+                        className="flex items-center gap-2.5 border-b border-border/60 py-2"
+                      >
+                        <Icon
+                          className="size-3.5 shrink-0"
+                          style={{ color: meta.color }}
+                        />
+                        <span className="truncate text-[13px] text-foreground/70">
+                          {n.title}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
 
-                  <div className="mt-auto flex items-center justify-between pt-3">
-                    <span className="text-[11px] text-muted-foreground">
-                      {c.nodeIds.length} nodes
-                    </span>
-                    <span className="text-[11px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                      Open →
-                    </span>
-                  </div>
+                <div className="mt-auto flex items-center justify-between pt-6">
+                  <span className="text-[12px] text-foreground/45">
+                    {c.nodeIds.length} nodes
+                  </span>
+                  <span className="flex items-center gap-1 text-[13px] tracking-tight text-foreground/50 transition-colors group-hover:text-foreground">
+                    Open
+                    <ArrowUpRight className="size-3.5" />
+                  </span>
                 </div>
               </div>
             )
           })}
+
+          {/* Create card */}
+          <button className="group flex min-h-52 flex-col items-center justify-center gap-3 bg-background p-6 text-center transition-colors duration-300 hover:bg-card">
+            <span className="flex size-11 items-center justify-center border border-border transition-colors group-hover:border-gunmetal">
+              <Plus className="size-5 text-foreground/55 transition-colors group-hover:text-foreground" />
+            </span>
+            <span className="text-[15px] text-foreground">
+              Create collection
+            </span>
+            <span className="text-[12px] text-foreground/45">
+              Manual, or let AI group
+            </span>
+          </button>
         </div>
       </div>
     </div>
