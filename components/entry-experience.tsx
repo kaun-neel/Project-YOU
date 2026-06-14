@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { ClosingPlasma } from '@/components/ui/closing-plasma'
@@ -51,11 +52,16 @@ export function EntryExperience({ onEnter }: { onEnter: () => void }) {
         className="absolute inset-0 h-full w-full"
       />
 
-      {/* Top wordmark */}
-      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-7 pt-7 sm:px-10 sm:pt-9">
-        <span className="select-none text-[17px] font-normal tracking-tight text-white/90">
-          ProJect <span className="font-bold">YOU</span>
-        </span>
+      {/* Top logo */}
+      <div className="absolute inset-x-0 top-0 z-20 flex items-center px-7 pt-7 sm:px-10 sm:pt-9">
+        <Image
+          src="/logo.png"
+          alt="Logo"
+          width={36}
+          height={36}
+          className="size-9 object-contain invert opacity-90"
+          priority
+        />
       </div>
 
       {/* Centered content */}
@@ -79,7 +85,11 @@ export function EntryExperience({ onEnter }: { onEnter: () => void }) {
             className="max-w-[16ch] text-[clamp(2.4rem,7vw,5.5rem)] font-bold leading-[1.06] tracking-tight text-white text-balance"
           >
             <WaveText
-              text="Everything you have ever known,"
+              text="Everything you"
+              className="block text-[clamp(2.4rem,7vw,5.5rem)] font-bold leading-[1.06] tracking-tight text-white"
+            />
+            <WaveText
+              text="have ever known"
               className="block text-[clamp(2.4rem,7vw,5.5rem)] font-bold leading-[1.06] tracking-tight text-white"
             />
             <WaveText

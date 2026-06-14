@@ -41,6 +41,9 @@ export function CaptureModal() {
   const [pdfName, setPdfName] = useState<string | null>(null)
   const [voiceDuration, setVoiceDuration] = useState(0)
   const [showPreview, setShowPreview] = useState(false)
+  const [urlFetching, setUrlFetching] = useState(false)
+  const [urlMeta, setUrlMeta] = useState<{ title: string; description: string; image?: string | null; hostname: string } | null>(null)
+  const [urlError, setUrlError] = useState<string | null>(null)
   const [render, setRender] = useState(false)
 
   useEffect(() => {
@@ -73,19 +76,44 @@ export function CaptureModal() {
     setTagInput('')
   }
 
+  async function handleFetchUrl() {
+    if (!url.trim()) return
+    setUrlFetching(true)
+    setUrlError(null)
+    setUrlMeta(null)
+    try {
+      const res = await fetch('/api/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        setUrlError(data.error || 'Could not fetch URL')
+      } else {
+        setUrlMeta(data)
+        setShowPreview(true)
+      }
+    } catch {
+      setUrlError('Network error. Please try again.')
+    } finally {
+      setUrlFetching(false)
+    }
+  }
+
   function handleSave() {
     setSaving(true)
     setTimeout(() => {
       // Build a meaningful title from the captured content
       const titleMap: Record<Tab, string> = {
         note: noteText.trim().slice(0, 60) || 'Untitled note',
-        url: url.trim() || 'Saved URL',
+        url: urlMeta?.title || url.trim() || 'Saved URL',
         pdf: pdfName ?? 'Uploaded PDF',
         voice: `Voice memo (${Math.floor(voiceDuration / 60)}:${String(voiceDuration % 60).padStart(2, '0')})`,
       }
       const summaryMap: Record<Tab, string> = {
         note: noteText.trim().slice(0, 200) || 'A thought captured from Quick Capture.',
-        url: `Saved from ${url.trim() || 'web'}`,
+        url: urlMeta?.description || `Saved from ${url.trim() || 'web'}`,
         pdf: `PDF document: ${pdfName ?? 'untitled'}`,
         voice: `Voice recording of ${voiceDuration}s captured from microphone.`,
       }
@@ -101,19 +129,21 @@ export function CaptureModal() {
       })
       setSaving(false)
       setSaved(true)
-      setTimeout(() => {
-        closeCapture()
         setTimeout(() => {
-          setSaved(false)
-          setTags([])
-          setUrl('')
-          setNoteText('')
-          setPdfName(null)
-          setVoiceDuration(0)
-          setShowPreview(false)
-          setTab('note')
-        }, 250)
-      }, 900)
+          closeCapture()
+          setTimeout(() => {
+            setSaved(false)
+            setTags([])
+            setUrl('')
+            setNoteText('')
+            setPdfName(null)
+            setVoiceDuration(0)
+            setShowPreview(false)
+            setUrlMeta(null)
+            setUrlError(null)
+            setTab('note')
+          }, 250)
+        }, 900)
     }, 900)
   }
 
@@ -222,26 +252,39 @@ export function CaptureModal() {
                         />
                       </div>
                       <button
-                        onClick={() => url && setShowPreview(true)}
-                        className="border border-border px-4 text-[13px] tracking-tight text-foreground transition-colors hover:border-gunmetal"
+                        onClick={handleFetchUrl}
+                        disabled={!url.trim() || urlFetching}
+                        className="border border-border px-4 text-[13px] tracking-tight text-foreground transition-colors hover:border-gunmetal disabled:opacity-50"
                       >
-                        Fetch
+                        {urlFetching ? (
+                          <span className="flex items-center gap-1.5">
+                            <span className="size-3 animate-spin rounded-full border border-foreground/30 border-t-foreground" />
+                            Fetching
+                          </span>
+                        ) : 'Fetch'}
                       </button>
                     </div>
-                    {showPreview && (
+                    {urlError && (
+                      <p className="text-[12px] text-destructive/80">{urlError}</p>
+                    )}
+                    {showPreview && urlMeta && (
                       <div className="animate-scale-in overflow-hidden border border-border bg-background/40">
-                        <div className="h-24 bg-secondary" />
+                        {urlMeta.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={urlMeta.image}
+                            alt=""
+                            className="h-28 w-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                        )}
+                        {!urlMeta.image && <div className="h-16 bg-secondary/60" />}
                         <div className="p-3.5">
-                          <p className="truncate text-[15px]">
-                            The Bitter Lesson — Rich Sutton
-                          </p>
-                          <p className="mt-1 line-clamp-2 text-[13px] text-foreground/55">
-                            General methods that leverage computation are
-                            ultimately the most effective.
-                          </p>
-                          <p className="mt-2 truncate text-[11px] text-gunmetal">
-                            {url}
-                          </p>
+                          <p className="truncate text-[15px] text-foreground">{urlMeta.title}</p>
+                          {urlMeta.description && (
+                            <p className="mt-1 line-clamp-2 text-[13px] text-foreground/55">{urlMeta.description}</p>
+                          )}
+                          <p className="mt-2 truncate text-[11px] text-gunmetal">{urlMeta.hostname}</p>
                         </div>
                       </div>
                     )}

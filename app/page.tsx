@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { SignInPage } from '@/components/sign-in-page'
 import { EntryExperience } from '@/components/entry-experience'
 import { AppShell } from '@/components/app-shell'
@@ -8,40 +8,63 @@ import { GraphView } from '@/components/graph-view'
 
 type Stage = 'loading' | 'signin' | 'entry' | 'graph'
 
-export default function Home() {
-  const [stage, setStage] = useState<Stage>('loading')
+interface UserInfo {
+  userId: string
+  email: string
+  name: string
+}
 
-  // On mount, hit /api/auth/me — if we have a valid session cookie skip sign-in
+// Keep stage in module-level so logo click navigates back to entry, not signin
+let _persistedStage: Stage | null = null
+
+export default function Home() {
+  const [stage, setStage] = useState<Stage>(_persistedStage ?? 'loading')
+  const [user, setUser] = useState<UserInfo | null>(null)
+
+  const advance = useCallback((next: Stage) => {
+    _persistedStage = next
+    setStage(next)
+  }, [])
+
   useEffect(() => {
+    // Only check session on very first load (no persisted stage)
+    if (_persistedStage !== null) return
     fetch('/api/auth/me')
       .then((r) => r.json())
       .then((data) => {
         if (data?.user) {
-          // Already authenticated — go straight to entry experience
-          setStage('entry')
+          setUser(data.user)
+          advance('entry')
         } else {
-          setStage('signin')
+          advance('signin')
         }
       })
-      .catch(() => setStage('signin'))
+      .catch(() => advance('signin'))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  function advance(next: Stage) {
-    setStage(next)
-  }
 
   if (stage === 'loading') return <div className="h-dvh bg-[#0d0d14]" />
 
   if (stage === 'signin')
-    return <SignInPage onSuccess={() => advance('entry')} />
+    return (
+      <SignInPage
+        onSuccess={() => {
+          fetch('/api/auth/me')
+            .then((r) => r.json())
+            .then((data) => { if (data?.user) setUser(data.user) })
+            .catch(() => {})
+          advance('entry')
+        }}
+      />
+    )
 
   if (stage === 'entry')
     return <EntryExperience onEnter={() => advance('graph')} />
 
   return (
     <div style={{ animation: 'mem-blur-in 0.9s cubic-bezier(0.16,1,0.3,1) both' }}>
-      <AppShell>
-        <GraphView />
+      <AppShell user={user} onLogoClick={() => advance('entry')}>
+        <GraphView user={user} />
       </AppShell>
     </div>
   )

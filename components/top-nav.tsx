@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
@@ -15,13 +16,39 @@ export const navItems: NavItem[] = [
   { href: '/collections', label: 'COLLECTIONS' },
 ]
 
-function Wordmark() {
+function Wordmark({ onClick }: { onClick?: () => void }) {
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className="block shrink-0 transition-opacity duration-300 hover:opacity-70"
+        aria-label="Go home"
+      >
+        <Image
+          src="/logo.png"
+          alt="Logo"
+          width={40}
+          height={40}
+          className="size-10 object-contain invert"
+          priority
+        />
+      </button>
+    )
+  }
   return (
     <Link
       href="/"
-      className="select-none text-[17px] font-normal tracking-tight text-foreground transition-opacity duration-300 hover:opacity-70 sm:text-[18px]"
+      className="block shrink-0 transition-opacity duration-300 hover:opacity-70"
+      aria-label="Go home"
     >
-      ProJect <span className="font-bold">YOU</span>
+      <Image
+        src="/logo.png"
+        alt="Logo"
+        width={40}
+        height={40}
+        className="size-10 object-contain invert"
+        priority
+      />
     </Link>
   )
 }
@@ -31,21 +58,31 @@ function Wordmark() {
  * - variant="landing": just the wordmark + a ghost CONTACT control.
  * - variant="app": wordmark + nav links + a CAPTURE ghost action.
  */
+interface UserInfo {
+  userId: string
+  email: string
+  name: string
+}
+
 export function TopNav({
   variant = 'app',
   onCapture,
+  onLogoClick,
   reveal = true,
+  user,
 }: {
   variant?: 'landing' | 'app'
   onCapture?: () => void
+  onLogoClick?: () => void
   reveal?: boolean
+  user?: UserInfo | null
 }) {
   const pathname = usePathname()
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-[60]">
-      <nav className="pointer-events-auto mx-auto flex max-w-[1600px] items-center justify-between px-5 py-5 sm:px-10 sm:py-7">
-        <Wordmark />
+      <nav className="pointer-events-auto mx-auto flex max-w-[1600px] items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
+        <Wordmark onClick={onLogoClick} />
 
         {variant === 'landing' ? (
           <a

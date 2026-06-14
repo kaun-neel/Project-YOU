@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { SlidersHorizontal, Check, RotateCcw } from 'lucide-react'
+import { SlidersHorizontal, Check, RotateCcw, Settings } from 'lucide-react'
 import { KnowledgeGraph } from './knowledge-graph'
 import { NodeDetailPanel } from './node-detail-panel'
 import { GraphLegend } from './graph-legend'
+import { SettingsPanel } from './settings-panel'
 import {
   nodeTypeMeta,
   type KnowledgeNode,
@@ -15,12 +16,19 @@ import { cn } from '@/lib/utils'
 
 const types = Object.keys(nodeTypeMeta) as NodeType[]
 
-export function GraphView() {
+interface UserInfo {
+  userId: string
+  email: string
+  name: string
+}
+
+export function GraphView({ user }: { user?: UserInfo | null }) {
   const { nodes, tags: allTags } = useCapture()
   const [selected, setSelected] = useState<KnowledgeNode | null>(null)
   const [activeTypes, setActiveTypes] = useState<NodeType[]>([...types])
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   function toggleType(t: NodeType) {
     setActiveTypes((prev) =>
@@ -43,7 +51,7 @@ export function GraphView() {
       {/* Filter rail */}
       <div
         className={cn(
-          'absolute inset-y-0 left-0 z-30 w-64 shrink-0 overflow-y-auto border-r border-border bg-background/95 backdrop-blur-md transition-transform duration-500 ease-fluid md:relative md:z-10 md:translate-x-0',
+          'absolute inset-y-0 left-0 z-30 w-64 shrink-0 overflow-y-auto border-r border-border/40 bg-background transition-transform duration-500 ease-fluid md:relative md:z-10 md:translate-x-0',
           showFilters ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -149,6 +157,17 @@ export function GraphView() {
             {nodes.length} nodes
           </p>
         </div>
+
+        {/* Settings button — pinned to bottom */}
+        <div className="mt-auto border-t border-border/40 px-5 py-4">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="flex w-full items-center gap-2.5 text-[13px] text-foreground/55 transition-colors hover:text-foreground"
+          >
+            <Settings className="size-4" />
+            Settings
+          </button>
+        </div>
       </div>
 
       {/* Stage */}
@@ -185,6 +204,12 @@ export function GraphView() {
           onSelect={setSelected}
         />
       </div>
+
+      <SettingsPanel
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        user={user}
+      />
     </div>
   )
 }

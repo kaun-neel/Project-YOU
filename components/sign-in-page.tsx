@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { cn } from '@/lib/utils'
@@ -194,21 +195,16 @@ const Shader: React.FC<ShaderProps> = ({ source, uniforms, maxFps = 60 }) => (
 
 // ─── MiniNavbar ───────────────────────────────────────────────────────────
 function MiniNavbar() {
-  const logo = (
-    <div className="relative flex h-5 w-5 items-center justify-center">
-      {['top-0 left-1/2 -translate-x-1/2', 'left-0 top-1/2 -translate-y-1/2', 'right-0 top-1/2 -translate-y-1/2', 'bottom-0 left-1/2 -translate-x-1/2'].map((pos, i) => (
-        <span key={i} className={`absolute h-1.5 w-1.5 rounded-full bg-gray-200 opacity-80 ${pos}`} />
-      ))}
-    </div>
-  )
-
   return (
     <header className="fixed inset-x-0 top-6 z-20 flex justify-center px-4">
-      <div className="flex items-center gap-6 rounded-full border border-[#333] bg-[#1f1f1f57] px-6 py-3 backdrop-blur-sm">
-        {logo}
-        <span className="select-none text-[15px] font-normal tracking-tight text-white/60">
-          ProJect <span className="font-semibold text-white">YOU</span>
-        </span>
+      <div className="flex items-center gap-3 rounded-full border border-[#333] bg-[#1f1f1f57] px-5 py-2.5 backdrop-blur-sm">
+        <Image
+          src="/logo.png"
+          alt="Logo"
+          width={28}
+          height={28}
+          className="size-7 object-contain invert opacity-90"
+        />
       </div>
     </header>
   )
