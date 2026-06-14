@@ -185,7 +185,7 @@ export function SearchView() {
 
 function EmptyState({ onPick }: { onPick: (q: string) => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-5 py-10 text-center">
+    <div className="flex min-h-full flex-col items-center justify-start px-5 pb-16 pt-[6vh] text-center sm:justify-center sm:py-10">
       <p
         className="text-[15px] tracking-tight text-foreground/60"
         style={{ animation: 'mem-fade-up 0.7s cubic-bezier(0.16,1,0.3,1) 0.05s both' }}

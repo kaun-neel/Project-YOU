@@ -135,7 +135,7 @@ export function EntryExperience({ onEnter }: { onEnter: () => void }) {
 
         {/* Bottom-right manifesto */}
         <p
-          className="absolute bottom-8 right-5 max-w-[34ch] text-right text-[15px] leading-[1.5] text-foreground/70 sm:bottom-12 sm:right-10 sm:text-[18px]"
+          className="absolute bottom-8 right-5 max-w-[34ch] rounded-[6px] bg-background/55 px-4 py-3 text-right text-[15px] leading-[1.5] text-foreground/75 backdrop-blur-md sm:bottom-12 sm:right-10 sm:text-[18px]"
           style={{
             animation: 'mem-fade-up 0.9s cubic-bezier(0.16,1,0.3,1) 1.1s both',
           }}
