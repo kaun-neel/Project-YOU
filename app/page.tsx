@@ -6,24 +6,31 @@ import { EntryExperience } from '@/components/entry-experience'
 import { AppShell } from '@/components/app-shell'
 import { GraphView } from '@/components/graph-view'
 
-type Stage = 'signin' | 'entry' | 'graph'
-const SESSION_KEY = 'project-you-stage'
+type Stage = 'loading' | 'signin' | 'entry' | 'graph'
 
 export default function Home() {
-  const [stage, setStage] = useState<Stage | null>(null)
+  const [stage, setStage] = useState<Stage>('loading')
 
+  // On mount, hit /api/auth/me — if we have a valid session cookie skip sign-in
   useEffect(() => {
-    const saved = sessionStorage.getItem(SESSION_KEY) as Stage | null
-    // Always start fresh from signin unless already in graph
-    setStage(saved === 'graph' ? 'graph' : 'signin')
+    fetch('/api/auth/me')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.user) {
+          // Already authenticated — go straight to entry experience
+          setStage('entry')
+        } else {
+          setStage('signin')
+        }
+      })
+      .catch(() => setStage('signin'))
   }, [])
 
   function advance(next: Stage) {
-    sessionStorage.setItem(SESSION_KEY, next)
     setStage(next)
   }
 
-  if (stage === null) return <div className="h-dvh bg-black" />
+  if (stage === 'loading') return <div className="h-dvh bg-[#0d0d14]" />
 
   if (stage === 'signin')
     return <SignInPage onSuccess={() => advance('entry')} />

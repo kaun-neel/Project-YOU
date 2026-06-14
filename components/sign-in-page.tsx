@@ -2,10 +2,240 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Link from 'next/link'
+import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { WaveText } from '@/components/ui/wave-text'
 
+type Mode = 'signin' | 'signup'
+
+// ─── tiny hook ────────────────────────────────────────────────────────────────
+function useField(initial = '') {
+  const [value, setValue] = useState(initial)
+  const [touched, setTouched] = useState(false)
+  return {
+    value,
+    touched,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value),
+    onBlur: () => setTouched(true),
+    reset: () => { setValue(initial); setTouched(false) },
+  }
+}
+
+// ─── Input ─────────────────────────────────────────────────────────────────
+function Field({
+  label,
+  type = 'text',
+  placeholder,
+  autoComplete,
+  error,
+  ...rest
+}: {
+  label: string
+  type?: string
+  placeholder?: string
+  autoComplete?: string
+  error?: string
+} & React.InputHTMLAttributes<HTMLInputElement>) {
+  const [show, setShow] = useState(false)
+  const isPassword = type === 'password'
+  const inputType = isPassword ? (show ? 'text' : 'password') : type
+
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-[12px] tracking-[0.08em] uppercase text-white/40">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type={inputType}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          className={cn(
+            'w-full rounded-lg border bg-white/[0.05] px-4 py-3 text-[15px] text-white placeholder:text-white/20 focus:outline-none transition-colors duration-200',
+            error
+              ? 'border-red-500/60 focus:border-red-400'
+              : 'border-white/10 focus:border-white/35',
+            isPassword && 'pr-11',
+          )}
+          {...rest}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShow((s) => !s)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 transition-colors hover:text-white/60"
+            tabIndex={-1}
+          >
+            {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
+        )}
+      </div>
+      {error && (
+        <p className="text-[12px] text-red-400">{error}</p>
+      )}
+    </div>
+  )
+}
+
+// ─── Left decorative panel ─────────────────────────────────────────────────
+function LeftPanel() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')!
+    let raf: number
+    let t = 0
+
+    function resize() {
+      canvas!.width = canvas!.offsetWidth * window.devicePixelRatio
+      canvas!.height = canvas!.offsetHeight * window.devicePixelRatio
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const STAR_COUNT = 260
+    const stars = Array.from({ length: STAR_COUNT }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      r: Math.random() * 1.4 + 0.3,
+      speed: Math.random() * 0.00008 + 0.00003,
+      phase: Math.random() * Math.PI * 2,
+    }))
+
+    function draw() {
+      const w = canvas!.offsetWidth
+      const h = canvas!.offsetHeight
+      ctx.clearRect(0, 0, w, h)
+
+      // Deep space gradient bg
+      const bg = ctx.createRadialGradient(w * 0.5, h * 0.35, 0, w * 0.5, h * 0.35, h * 0.9)
+      bg.addColorStop(0, '#151c2e')
+      bg.addColorStop(0.5, '#0c1220')
+      bg.addColorStop(1, '#07090f')
+      ctx.fillStyle = bg
+      ctx.fillRect(0, 0, w, h)
+
+      // Nebula smears
+      const nebulas = [
+        { cx: 0.3, cy: 0.25, rx: 0.28, ry: 0.18, color: 'rgba(60,90,180,0.08)' },
+        { cx: 0.72, cy: 0.55, rx: 0.22, ry: 0.15, color: 'rgba(90,55,155,0.07)' },
+        { cx: 0.5, cy: 0.75, rx: 0.35, ry: 0.14, color: 'rgba(30,110,140,0.06)' },
+      ]
+      nebulas.forEach(({ cx, cy, rx, ry, color }) => {
+        const g = ctx.createRadialGradient(cx * w, cy * h, 0, cx * w, cy * h, Math.max(rx * w, ry * h))
+        g.addColorStop(0, color)
+        g.addColorStop(1, 'transparent')
+        ctx.fillStyle = g
+        ctx.beginPath()
+        ctx.ellipse(cx * w, cy * h, rx * w, ry * h, 0, 0, Math.PI * 2)
+        ctx.fill()
+      })
+
+      // Stars
+      stars.forEach((s) => {
+        const blink = 0.55 + 0.45 * Math.sin(t * 0.6 + s.phase)
+        ctx.globalAlpha = blink * (0.5 + s.r * 0.3)
+        ctx.fillStyle = '#fff'
+        ctx.beginPath()
+        ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2)
+        ctx.fill()
+      })
+      ctx.globalAlpha = 1
+
+      // Floating prism glyph
+      const cx = w * 0.5, cy = h * 0.42
+      const sz = Math.min(w, h) * 0.22
+      const rot = t * 0.25
+      ctx.save()
+      ctx.translate(cx, cy)
+      ctx.rotate(rot)
+
+      // Outer ring glow
+      const ring = ctx.createRadialGradient(0, 0, sz * 0.6, 0, 0, sz * 1.1)
+      ring.addColorStop(0, 'rgba(100,140,220,0.10)')
+      ring.addColorStop(1, 'transparent')
+      ctx.fillStyle = ring
+      ctx.beginPath(); ctx.arc(0, 0, sz * 1.1, 0, Math.PI * 2); ctx.fill()
+
+      // Triangular prism
+      const pts = [
+        [0, -sz],
+        [sz * 0.866, sz * 0.5],
+        [-sz * 0.866, sz * 0.5],
+      ]
+      ctx.beginPath()
+      ctx.moveTo(pts[0][0], pts[0][1])
+      pts.slice(1).forEach(([x, y]) => ctx.lineTo(x, y))
+      ctx.closePath()
+      const prismGrad = ctx.createLinearGradient(-sz, -sz, sz, sz)
+      prismGrad.addColorStop(0, 'rgba(200,215,255,0.22)')
+      prismGrad.addColorStop(0.5, 'rgba(120,160,230,0.10)')
+      prismGrad.addColorStop(1, 'rgba(80,110,190,0.18)')
+      ctx.fillStyle = prismGrad
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(180,200,255,0.35)'
+      ctx.lineWidth = 1
+      ctx.stroke()
+
+      // Inner lines
+      ctx.globalAlpha = 0.18
+      ctx.strokeStyle = '#a0b8ff'
+      ctx.lineWidth = 0.8
+      ctx.beginPath(); ctx.moveTo(0, -sz); ctx.lineTo(0, sz * 0.5); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(sz * 0.866, sz * 0.5); ctx.lineTo(-sz * 0.433, -sz * 0.25); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(-sz * 0.866, sz * 0.5); ctx.lineTo(sz * 0.433, -sz * 0.25); ctx.stroke()
+      ctx.globalAlpha = 1
+
+      ctx.restore()
+
+      t += 0.008
+      raf = requestAnimationFrame(draw)
+    }
+
+    draw()
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
+
+  return (
+    <div className="relative hidden h-full flex-col justify-between overflow-hidden md:flex" style={{ background: '#07090f' }}>
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+
+      {/* Overlay content */}
+      <div className="relative z-10 flex h-full flex-col justify-between p-10">
+        <span className="select-none text-[17px] font-normal tracking-tight text-white/70">
+          ProJect <span className="font-bold text-white">YOU</span>
+        </span>
+
+        <div className="space-y-4">
+          <WaveText
+            text="Your memory,"
+            className="block text-[2.8rem] font-bold leading-[1.05] tracking-tight text-white"
+          />
+          <WaveText
+            text="finally organised."
+            className="block text-[2.8rem] font-bold leading-[1.05] tracking-tight text-white/50"
+          />
+          <p className="mt-3 max-w-[34ch] text-[15px] leading-relaxed text-white/35">
+            Capture anything. Find everything. Let the graph connect the dots
+            between your thoughts, papers, and voice memos.
+          </p>
+        </div>
+
+        <p className="text-[12px] text-white/20">
+          &copy; {new Date().getFullYear()} ProJect YOU
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────
 export function SignInPage({
   className,
   onSuccess,
@@ -13,253 +243,249 @@ export function SignInPage({
   className?: string
   onSuccess?: () => void
 }) {
-  const [email, setEmail] = useState('')
-  const [step, setStep] = useState<'email' | 'code' | 'success'>('email')
-  const [code, setCode] = useState(['', '', '', '', '', ''])
-  const codeInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const [mode, setMode] = useState<Mode>('signin')
+  const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [leaving, setLeaving] = useState(false)
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  // Sign-in fields
+  const siEmail = useField()
+  const siPassword = useField()
+
+  // Sign-up fields
+  const suName = useField()
+  const suEmail = useField()
+  const suPassword = useField()
+  const suConfirm = useField()
+
+  // Validation
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  function validate(): boolean {
+    const e: Record<string, string> = {}
+    if (mode === 'signin') {
+      if (!siEmail.value) e.siEmail = 'Required'
+      if (!siPassword.value) e.siPassword = 'Required'
+    } else {
+      if (!suName.value.trim()) e.suName = 'Required'
+      if (!suEmail.value) e.suEmail = 'Required'
+      if (suPassword.value.length < 8) e.suPassword = 'At least 8 characters'
+      if (suConfirm.value !== suPassword.value) e.suConfirm = 'Passwords do not match'
+    }
+    setErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (email) setStep('code')
+    setApiError(null)
+    if (!validate()) return
+    setLoading(true)
+
+    try {
+      const endpoint = mode === 'signin' ? '/api/auth/signin' : '/api/auth/signup'
+      const body =
+        mode === 'signin'
+          ? { email: siEmail.value, password: siPassword.value }
+          : { email: suEmail.value, name: suName.value, password: suPassword.value }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setApiError(data.error || 'Something went wrong.')
+        setLoading(false)
+        return
+      }
+
+      // Success — animate out
+      setLeaving(true)
+      setTimeout(() => onSuccess?.(), 750)
+    } catch {
+      setApiError('Network error. Please try again.')
+      setLoading(false)
+    }
   }
 
-  useEffect(() => {
-    if (step === 'code') {
-      setTimeout(() => codeInputRefs.current[0]?.focus(), 400)
-    }
-    if (step === 'success') {
-      const t = setTimeout(() => {
-        setLeaving(true)
-        setTimeout(() => onSuccess?.(), 700)
-      }, 1200)
-      return () => clearTimeout(t)
-    }
-  }, [step, onSuccess])
-
-  const handleCodeChange = (index: number, value: string) => {
-    if (value.length > 1) return
-    const next = [...code]
-    next[index] = value
-    setCode(next)
-    if (value && index < 5) codeInputRefs.current[index + 1]?.focus()
-    if (index === 5 && value && next.every((d) => d.length === 1)) {
-      setTimeout(() => setStep('success'), 300)
-    }
-  }
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !code[index] && index > 0)
-      codeInputRefs.current[index - 1]?.focus()
-  }
-
-  const handleBack = () => {
-    setStep('email')
-    setCode(['', '', '', '', '', ''])
+  function switchMode(next: Mode) {
+    setMode(next)
+    setErrors({})
+    setApiError(null)
+    siEmail.reset(); siPassword.reset()
+    suName.reset(); suEmail.reset(); suPassword.reset(); suConfirm.reset()
   }
 
   return (
     <div
       className={cn(
-        'relative flex min-h-screen w-full flex-col overflow-hidden',
+        'relative flex h-dvh w-full overflow-hidden transition-[opacity,transform,filter] duration-700',
+        leaving && 'scale-105 opacity-0 blur-lg',
         className,
       )}
-      style={{
-        background: '#0d0d14',
-        opacity: leaving ? 0 : 1,
-        transform: leaving ? 'scale(1.04)' : 'scale(1)',
-        filter: leaving ? 'blur(10px)' : 'blur(0)',
-        transition: 'opacity 0.7s ease, transform 0.7s ease, filter 0.7s ease',
-      }}
+      style={{ background: '#0d0d14' }}
     >
-      {/* Subtle radial glow */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(79,115,170,0.13) 0%, transparent 70%)',
-        }}
-      />
+      {/* ── Responsive 2-col grid ── */}
+      <div className="grid h-full w-full md:grid-cols-[1fr_1fr] lg:grid-cols-[1.1fr_0.9fr]">
 
-      {/* Top wordmark */}
-      <div className="relative z-10 flex items-center justify-between px-7 pt-7 sm:px-10 sm:pt-9">
-        <span className="select-none text-[17px] font-normal tracking-tight text-white/80">
-          ProJect <span className="font-bold">YOU</span>
-        </span>
-      </div>
+        {/* Left — decorative canvas */}
+        <LeftPanel />
 
-      {/* Centered form */}
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-5">
-        <div className="w-full max-w-sm">
-          <AnimatePresence mode="wait">
-            {step === 'email' ? (
-              <motion.div
-                key="email"
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -24 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="space-y-7 text-center"
-              >
-                <div className="space-y-2">
-                  <h1 className="text-[2.6rem] font-bold leading-[1.08] tracking-tight text-white">
-                    <WaveText text="Welcome Human" className="text-[2.6rem] font-bold tracking-tight text-white" />
-                  </h1>
-                  <p className="text-[1.3rem] font-light text-white/45">
-                    <WaveText text="Your memory awaits" className="text-[1.3rem] font-light text-white/45" />
-                  </p>
-                </div>
+        {/* Right — form */}
+        <div className="relative flex h-full flex-col overflow-y-auto">
+          {/* Mobile wordmark */}
+          <div className="flex items-center justify-between px-6 pt-7 md:hidden">
+            <span className="select-none text-[17px] font-normal tracking-tight text-white/80">
+              ProJect <span className="font-bold text-white">YOU</span>
+            </span>
+          </div>
 
-                <div className="space-y-4">
-                  <button className="flex w-full items-center justify-center gap-2.5 rounded-full border border-white/12 bg-white/[0.06] px-4 py-3 text-sm text-white transition-colors hover:bg-white/[0.10]">
-                    <svg className="size-4" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                    <WaveText text="Continue with Google" className="text-sm text-white" />
-                  </button>
+          <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 sm:px-10">
+            <div className="w-full max-w-[380px]">
 
-                  <div className="flex items-center gap-4">
-                    <div className="h-px flex-1 bg-white/10" />
-                    <span className="text-sm text-white/30">or</span>
-                    <div className="h-px flex-1 bg-white/10" />
-                  </div>
-
-                  <form onSubmit={handleEmailSubmit}>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full rounded-full border border-white/10 bg-white/[0.05] py-3 px-5 text-center text-white transition-colors focus:border-white/30 focus:outline-none placeholder:text-white/30"
-                        required
-                      />
-                      <button
-                        type="submit"
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-                      >
-                        <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                <p className="pt-4 text-xs text-white/30">
-                  By continuing, you agree to our{' '}
-                  <Link href="#" className="underline underline-offset-2 transition-colors hover:text-white/55">Terms</Link>
-                  {' '}&amp;{' '}
-                  <Link href="#" className="underline underline-offset-2 transition-colors hover:text-white/55">Privacy</Link>.
-                </p>
-              </motion.div>
-
-            ) : step === 'code' ? (
-              <motion.div
-                key="code"
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -24 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="space-y-7 text-center"
-              >
-                <div className="space-y-2">
-                  <h1 className="text-[2.2rem] font-bold leading-[1.1] tracking-tight text-white">
-                    <WaveText text="Check your inbox" className="text-[2.2rem] font-bold tracking-tight text-white" />
-                  </h1>
-                  <p className="text-[1.1rem] font-light text-white/40">
-                    <WaveText text={`Code sent to ${email || 'your email'}`} className="text-[1.1rem] font-light text-white/40" />
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-5">
-                  <div className="flex items-center justify-center gap-1">
-                    {code.map((digit, i) => (
-                      <div key={i} className="flex items-center">
-                        <div className="relative">
-                          <input
-                            ref={(el) => { codeInputRefs.current[i] = el }}
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={1}
-                            value={digit}
-                            onChange={(e) => handleCodeChange(i, e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(i, e)}
-                            className="w-9 appearance-none border-none bg-transparent text-center text-2xl font-bold text-white focus:outline-none"
-                            style={{ caretColor: 'transparent' }}
-                          />
-                          {!digit && (
-                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                              <span className="text-2xl text-white/20">·</span>
-                            </div>
-                          )}
-                        </div>
-                        {i < 5 && <span className="mx-0.5 text-white/12">|</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <p className="cursor-pointer text-sm text-white/35 transition-colors hover:text-white/60">
-                  Didn&apos;t receive it? <span className="underline underline-offset-2">Resend</span>
-                </p>
-
-                <div className="flex gap-3">
-                  <motion.button
-                    onClick={handleBack}
-                    className="w-1/3 rounded-full border border-white/15 py-3 text-sm font-medium text-white/70 transition-colors hover:border-white/35 hover:text-white"
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    Back
-                  </motion.button>
-                  <motion.button
-                    onClick={() => code.every((d) => d !== '') && setStep('success')}
+              {/* Tab switcher */}
+              <div className="mb-8 flex rounded-lg border border-white/10 bg-white/[0.04] p-1">
+                {(['signin', 'signup'] as Mode[]).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => switchMode(m)}
                     className={cn(
-                      'flex-1 rounded-full py-3 text-sm font-medium transition-all duration-300',
-                      code.every((d) => d !== '')
-                        ? 'bg-white text-black cursor-pointer hover:bg-white/90'
-                        : 'border border-white/10 bg-white/[0.04] text-white/30 cursor-not-allowed',
+                      'flex-1 rounded-md py-2 text-[13px] font-medium tracking-wide transition-all duration-300',
+                      mode === m
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-white/45 hover:text-white/70',
                     )}
-                    whileTap={code.every((d) => d !== '') ? { scale: 0.97 } : {}}
                   >
-                    Continue
-                  </motion.button>
-                </div>
-              </motion.div>
+                    {m === 'signin' ? 'Sign in' : 'Create account'}
+                  </button>
+                ))}
+              </div>
 
-            ) : (
-              <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.94 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="space-y-6 text-center"
-              >
+              <AnimatePresence mode="wait">
                 <motion.div
-                  initial={{ scale: 0.7, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.55, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                  className="mx-auto flex size-20 items-center justify-center rounded-full bg-white"
+                  key={mode}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -18 }}
+                  transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  <svg className="size-9 text-black" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </motion.div>
-                <div>
-                  <h1 className="text-[2.4rem] font-bold tracking-tight text-white">
-                    <WaveText text="You&apos;re in!" className="text-[2.4rem] font-bold tracking-tight text-white" />
-                  </h1>
-                  <p className="mt-1 text-[1.2rem] font-light text-white/45">
-                    <WaveText text="Opening your memory..." className="text-[1.2rem] font-light text-white/45" />
+                  {/* Heading */}
+                  <div className="mb-7 space-y-1">
+                    <h1 className="text-[2rem] font-bold leading-[1.1] tracking-tight text-white">
+                      <WaveText
+                        text={mode === 'signin' ? 'Welcome Human' : 'Join the Memory'}
+                        className="text-[2rem] font-bold tracking-tight text-white"
+                      />
+                    </h1>
+                    <p className="text-[14px] text-white/35">
+                      {mode === 'signin'
+                        ? 'Sign in to access your knowledge graph.'
+                        : 'Create an account and start capturing.'}
+                    </p>
+                  </div>
+
+                  {/* API error */}
+                  {apiError && (
+                    <div className="mb-5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-300">
+                      {apiError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                    {mode === 'signup' && (
+                      <Field
+                        label="Full name"
+                        placeholder="Ada Lovelace"
+                        autoComplete="name"
+                        value={suName.value}
+                        onChange={suName.onChange}
+                        onBlur={suName.onBlur}
+                        error={suName.touched ? errors.suName : undefined}
+                      />
+                    )}
+
+                    <Field
+                      label="Email"
+                      type="email"
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                      value={mode === 'signin' ? siEmail.value : suEmail.value}
+                      onChange={mode === 'signin' ? siEmail.onChange : suEmail.onChange}
+                      onBlur={mode === 'signin' ? siEmail.onBlur : suEmail.onBlur}
+                      error={(mode === 'signin' ? siEmail.touched : suEmail.touched)
+                        ? (errors.siEmail ?? errors.suEmail)
+                        : undefined}
+                    />
+
+                    <Field
+                      label="Password"
+                      type="password"
+                      placeholder={mode === 'signup' ? 'Min. 8 characters' : '••••••••'}
+                      autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                      value={mode === 'signin' ? siPassword.value : suPassword.value}
+                      onChange={mode === 'signin' ? siPassword.onChange : suPassword.onChange}
+                      onBlur={mode === 'signin' ? siPassword.onBlur : suPassword.onBlur}
+                      error={(mode === 'signin' ? siPassword.touched : suPassword.touched)
+                        ? (errors.siPassword ?? errors.suPassword)
+                        : undefined}
+                    />
+
+                    {mode === 'signup' && (
+                      <Field
+                        label="Confirm password"
+                        type="password"
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        value={suConfirm.value}
+                        onChange={suConfirm.onChange}
+                        onBlur={suConfirm.onBlur}
+                        error={suConfirm.touched ? errors.suConfirm : undefined}
+                      />
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-white py-3 text-[14px] font-semibold text-black transition-all duration-200 hover:bg-white/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <>
+                          {mode === 'signin' ? 'Sign in' : 'Create account'}
+                          <ArrowRight className="size-4" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+
+                  {mode === 'signin' && (
+                    <p className="mt-5 text-center text-[12px] text-white/25">
+                      Don&apos;t have an account?{' '}
+                      <button
+                        type="button"
+                        onClick={() => switchMode('signup')}
+                        className="text-white/55 underline underline-offset-2 transition-colors hover:text-white"
+                      >
+                        Create one
+                      </button>
+                    </p>
+                  )}
+
+                  <p className="mt-6 text-center text-[11px] text-white/20">
+                    By continuing you agree to our{' '}
+                    <span className="underline underline-offset-2 cursor-pointer hover:text-white/40">Terms</span>
+                    {' & '}
+                    <span className="underline underline-offset-2 cursor-pointer hover:text-white/40">Privacy Policy</span>.
                   </p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </div>
     </div>
