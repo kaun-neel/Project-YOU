@@ -11,17 +11,20 @@ import {
   Upload,
   Mic,
 } from 'lucide-react'
-import { useChat, type UIMessage } from '@ai-sdk/react'
-import { DefaultChatTransport } from 'ai'
 import {
   examplePrompts,
   chatThreads,
   nodes as seedNodes,
-  nodeTypeMeta,
   type NodeType,
 } from '@/lib/mock-data'
 import { useCapture } from './capture-context'
 import { cn } from '@/lib/utils'
+
+interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  text: string
+}
 
 const typeIcon: Record<NodeType, typeof FileText> = {
   note: FileText,
@@ -35,36 +38,85 @@ function SearchViewInner() {
   const { nodes: capturedNodes } = useCapture()
   const [activeThread, setActiveThread] = useState('t1')
   const [input, setInput] = useState('')
+  const [messages, setMessages] = useState<Message[]>([])
+  const [thinking, setThinking] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const handledInitial = useRef(false)
   const initialQ = params.get('q')
 
-  // Use live captured nodes, falling back to seed data
   const liveNodes = capturedNodes.length > 0 ? capturedNodes : seedNodes
 
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/search',
-      prepareSendMessagesRequest: ({ id, messages }) => ({
-        body: {
-          id,
-          messages,
-          query: messages[messages.length - 1]
-            ? getUIMessageText(messages[messages.length - 1])
-            : '',
-          nodes: liveNodes,
-        },
-      }),
-    }),
-  })
-
-  const thinking = status === 'streaming' || status === 'submitted'
-
-  function send(text: string) {
+  async function send(text: string) {
     const q = text.trim()
     if (!q || thinking) return
     setInput('')
-    sendMessage({ text: q }, { body: { query: q, nodes: liveNodes } })
+
+    const userMsg: Message = { id: `u-${Date.now()}`, role: 'user', text: q }
+    setMessages((prev) => [...prev, userMsg])
+    setThinking(true)
+
+    const assistantId = `a-${Date.now()}`
+    setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', text: '' }])
+
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q, nodes: liveNodes }),
+      })
+
+      if (!res.ok || !res.body) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, text: 'Could not reach the AI. Please try again.' } : m,
+          ),
+        )
+        return
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (trimmed.startsWith('data:')) {
+            const data = trimmed.slice(5).trim()
+            if (data === '[DONE]') break
+            try {
+              const parsed = JSON.parse(data)
+              const delta =
+                parsed?.choices?.[0]?.delta?.content ??
+                parsed?.delta ??
+                ''
+              if (delta) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId ? { ...m, text: m.text + delta } : m,
+                  ),
+                )
+              }
+            } catch {
+              // skip non-JSON lines
+            }
+          }
+        }
+      }
+    } catch {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId ? { ...m, text: 'Network error. Please try again.' } : m,
+        ),
+      )
+    } finally {
+      setThinking(false)
+    }
   }
 
   useEffect(() => {
@@ -90,7 +142,7 @@ function SearchViewInner() {
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border/40 bg-background lg:flex">
         <div className="p-4">
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => { setMessages([]); setInput('') }}
             className="flex w-full items-center gap-2 border border-border px-3 py-2.5 text-[14px] tracking-tight text-foreground/80 transition-colors hover:border-gunmetal hover:text-foreground"
           >
             <Plus className="size-4" />
@@ -133,14 +185,16 @@ function SearchViewInner() {
                 m.role === 'user' ? (
                   <div key={m.id} className="animate-fade-up flex justify-end">
                     <div className="max-w-[85%] border border-border bg-secondary/40 px-4 py-2.5 text-[15px] text-foreground">
-                      {getUIMessageText(m)}
+                      {m.text}
                     </div>
                   </div>
                 ) : (
-                  <AssistantMessage key={m.id} message={m} />
+                  <AssistantMessage key={m.id} text={m.text} />
                 ),
               )}
-              {thinking && <ThinkingBubble />}
+              {thinking && messages[messages.length - 1]?.role !== 'assistant' && (
+                <ThinkingBubble />
+              )}
             </div>
           )}
         </div>
@@ -178,15 +232,6 @@ function SearchViewInner() {
   )
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-function getUIMessageText(msg: UIMessage): string {
-  if (!msg.parts || !Array.isArray(msg.parts)) return ''
-  return msg.parts
-    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-    .map((p) => p.text)
-    .join('')
-}
-
 function EmptyState({ onPick }: { onPick: (q: string) => void }) {
   return (
     <div className="flex min-h-full flex-col items-center justify-start px-5 pb-16 pt-[6vh] text-center sm:justify-center sm:py-10">
@@ -219,17 +264,31 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
   )
 }
 
-function AssistantMessage({ message }: { message: UIMessage }) {
-  const text = getUIMessageText(message)
+function AssistantMessage({ text }: { text: string }) {
   return (
     <div className="animate-fade-up flex gap-3.5">
       <div className="mt-1 flex size-7 shrink-0 items-center justify-center border border-border text-[11px] text-foreground/70">
         Y
       </div>
       <div className="min-w-0 flex-1">
-        <p className="whitespace-pre-wrap text-[16px] leading-[1.5] text-foreground/90">{text}</p>
+        <p className="whitespace-pre-wrap text-[16px] leading-[1.5] text-foreground/90">{text || <ThinkingDots />}</p>
       </div>
     </div>
+  )
+}
+
+function ThinkingDots() {
+  return (
+    <span className="flex items-center gap-1.5">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="size-1.5 rounded-full bg-foreground/55"
+          style={{ animation: `mem-dot 1.2s ease-in-out ${i * 0.18}s infinite` }}
+        />
+      ))}
+      <style>{`@keyframes mem-dot{0%,60%,100%{opacity:0.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}`}</style>
+    </span>
   )
 }
 
