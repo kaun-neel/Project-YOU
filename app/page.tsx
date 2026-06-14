@@ -1,33 +1,34 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { SignInPage } from '@/components/sign-in-page'
 import { EntryExperience } from '@/components/entry-experience'
 import { AppShell } from '@/components/app-shell'
 import { GraphView } from '@/components/graph-view'
 
-const ENTERED_KEY = 'project-you-entered'
+type Stage = 'signin' | 'entry' | 'graph'
+const SESSION_KEY = 'project-you-stage'
 
 export default function Home() {
-  const [entered, setEntered] = useState<boolean | null>(null)
+  const [stage, setStage] = useState<Stage | null>(null)
 
-  // Skip the intro if the user has already entered this session.
   useEffect(() => {
-    setEntered(sessionStorage.getItem(ENTERED_KEY) === '1')
+    const saved = sessionStorage.getItem(SESSION_KEY) as Stage | null
+    setStage(saved ?? 'signin')
   }, [])
 
-  function enter() {
-    sessionStorage.setItem(ENTERED_KEY, '1')
-    setEntered(true)
+  function advance(next: Stage) {
+    sessionStorage.setItem(SESSION_KEY, next)
+    setStage(next)
   }
 
-  // Avoid a flash before we know the session state.
-  if (entered === null) {
-    return <div className="h-dvh bg-background" />
-  }
+  if (stage === null) return <div className="h-dvh bg-black" />
 
-  if (!entered) {
-    return <EntryExperience onEnter={enter} />
-  }
+  if (stage === 'signin')
+    return <SignInPage onSuccess={() => advance('entry')} />
+
+  if (stage === 'entry')
+    return <EntryExperience onEnter={() => advance('graph')} />
 
   return (
     <div style={{ animation: 'mem-blur-in 0.9s cubic-bezier(0.16,1,0.3,1) both' }}>

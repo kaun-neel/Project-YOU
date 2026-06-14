@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
+import { StarField } from './star-field'
 import {
   nodes as allNodes,
   edges as allEdges,
@@ -103,8 +104,8 @@ export function KnowledgeGraph({
       .data(simLinks)
       .join('line')
       .attr('stroke', 'var(--node-url)')
-      .attr('stroke-opacity', (d) => 0.12 + d.strength * 0.18)
-      .attr('stroke-width', (d) => 0.5 + d.strength * 1.5)
+      .attr('stroke-opacity', (d) => 0.22 + d.strength * 0.28)
+      .attr('stroke-width', (d) => 0.6 + d.strength * 1.6)
 
     // ── Nodes ──
     const node = nodeGroup
@@ -129,7 +130,7 @@ export function KnowledgeGraph({
       .attr('r', (d) => radius(d))
       .attr('fill', (d) => nodeTypeMeta[d.type].color)
       .attr('filter', 'url(#node-glow)')
-      .attr('stroke', 'var(--background)')
+      .attr('stroke', '#070b10')
       .attr('stroke-width', 1.5)
 
     // labels
@@ -249,7 +250,7 @@ export function KnowledgeGraph({
         .transition()
         .duration(220)
         .attr('stroke', (d) =>
-          sel === d.id ? 'var(--primary)' : 'var(--background)',
+          sel === d.id ? 'var(--primary)' : '#070b10',
         )
         .attr('stroke-width', (d) => (sel === d.id ? 3 : 1.5))
 
@@ -320,8 +321,9 @@ export function KnowledgeGraph({
   }, [selectedId, activeTypes, activeTag])
 
   return (
-    <div ref={containerRef} className="relative size-full">
-      <svg ref={svgRef} className="size-full touch-none" />
+    <div ref={containerRef} className="relative size-full" style={{ background: '#070b10' }}>
+      <StarField />
+      <svg ref={svgRef} className="relative size-full touch-none" />
       <style>{`
         @keyframes mem-node-pulse {
           0%, 100% { transform: scale(1); opacity: 0.16; }
