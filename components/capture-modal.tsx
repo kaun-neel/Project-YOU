@@ -6,10 +6,14 @@ import {
   Link2,
   Upload,
   Mic,
+  MicOff,
   X,
   Check,
   Globe,
   Square,
+  Play,
+  Pause,
+  RotateCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCapture } from './capture-context'
@@ -33,7 +37,6 @@ export function CaptureModal() {
   const [tags, setTags] = useState<string[]>([])
   const [url, setUrl] = useState('')
   const [showPreview, setShowPreview] = useState(false)
-  const [recording, setRecording] = useState(false)
   const [render, setRender] = useState(false)
 
   useEffect(() => {
@@ -215,12 +218,7 @@ export function CaptureModal() {
 
                 {tab === 'pdf' && <DropZone />}
 
-                {tab === 'voice' && (
-                  <VoiceRecorder
-                    recording={recording}
-                    onToggle={() => setRecording((r) => !r)}
-                  />
-                )}
+                {tab === 'voice' && <VoiceRecorder active={tab === 'voice'} />}
               </div>
 
               {/* Tags */}
@@ -376,54 +374,302 @@ function DropZone() {
   )
 }
 
-function VoiceRecorder({
-  recording,
-  onToggle,
-}: {
-  recording: boolean
-  onToggle: () => void
-}) {
+const BAR_COUNT = 40
+
+function formatTime(seconds: number) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+type RecorderStatus = 'idle' | 'requesting' | 'recording' | 'recorded' | 'denied'
+
+function VoiceRecorder({ active }: { active: boolean }) {
+  const [status, setStatus] = useState<RecorderStatus>('idle')
+  const [time, setTime] = useState(0)
+  const [levels, setLevels] = useState<number[]>(() =>
+    Array.from({ length: BAR_COUNT }, () => 0),
+  )
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [playing, setPlaying] = useState(false)
+
+  const streamRef = useRef<MediaStream | null>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const audioElRef = useRef<HTMLAudioElement | null>(null)
+
+  // Fully stop and release all audio resources.
+  function teardown() {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = null
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = null
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      recorderRef.current.stop()
+    }
+    recorderRef.current = null
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      audioCtxRef.current.close().catch(() => {})
+    }
+    audioCtxRef.current = null
+    analyserRef.current = null
+  }
+
+  // Clean up when leaving the voice tab or unmounting.
+  useEffect(() => {
+    if (!active) {
+      teardown()
+      setStatus('idle')
+      setTime(0)
+      setPlaying(false)
+    }
+    return () => teardown()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active])
+
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl)
+    }
+  }, [audioUrl])
+
+  function visualize() {
+    const analyser = analyserRef.current
+    if (!analyser) return
+    const data = new Uint8Array(analyser.frequencyBinCount)
+
+    const tick = () => {
+      analyser.getByteFrequencyData(data)
+      const step = Math.floor(data.length / BAR_COUNT)
+      const next: number[] = []
+      for (let i = 0; i < BAR_COUNT; i++) {
+        let sum = 0
+        for (let j = 0; j < step; j++) sum += data[i * step + j]
+        next.push(Math.min(1, sum / step / 180))
+      }
+      setLevels(next)
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    tick()
+  }
+
+  async function startRecording() {
+    // Clear any previous take.
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl)
+      setAudioUrl(null)
+    }
+    setStatus('requesting')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+
+      const AudioCtx =
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext
+      const ctx = new AudioCtx()
+      audioCtxRef.current = ctx
+      const source = ctx.createMediaStreamSource(stream)
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 256
+      analyser.smoothingTimeConstant = 0.7
+      source.connect(analyser)
+      analyserRef.current = analyser
+
+      chunksRef.current = []
+      const recorder = new MediaRecorder(stream)
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, {
+          type: recorder.mimeType || 'audio/webm',
+        })
+        setAudioUrl(URL.createObjectURL(blob))
+      }
+      recorder.start()
+      recorderRef.current = recorder
+
+      setTime(0)
+      timerRef.current = setInterval(() => setTime((t) => t + 1), 1000)
+      setStatus('recording')
+      visualize()
+    } catch {
+      setStatus('denied')
+    }
+  }
+
+  function stopRecording() {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = null
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = null
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      recorderRef.current.stop()
+    }
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      audioCtxRef.current.close().catch(() => {})
+    }
+    audioCtxRef.current = null
+    analyserRef.current = null
+    setLevels(Array.from({ length: BAR_COUNT }, () => 0))
+    setStatus('recorded')
+  }
+
+  function reset() {
+    if (audioUrl) URL.revokeObjectURL(audioUrl)
+    setAudioUrl(null)
+    setPlaying(false)
+    setTime(0)
+    setStatus('idle')
+  }
+
+  function togglePlay() {
+    const el = audioElRef.current
+    if (!el) return
+    if (playing) {
+      el.pause()
+    } else {
+      el.play()
+    }
+  }
+
   return (
-    <div className="flex h-40 flex-col items-center justify-center gap-5 border border-border bg-background/40">
-      <div className="flex h-12 items-center gap-1">
-        {Array.from({ length: 28 }).map((_, i) => (
+    <div className="flex min-h-40 flex-col items-center justify-center gap-4 border border-border bg-background/40 px-6 py-5">
+      {/* Timer */}
+      <span
+        className={cn(
+          'font-mono text-[15px] tabular-nums transition-colors duration-300',
+          status === 'recording'
+            ? 'text-foreground'
+            : status === 'recorded'
+              ? 'text-gunmetal'
+              : 'text-foreground/30',
+        )}
+      >
+        {formatTime(time)}
+      </span>
+
+      {/* Live visualizer */}
+      <div className="flex h-10 w-full max-w-xs items-center justify-center gap-[3px]">
+        {levels.map((lvl, i) => (
           <span
             key={i}
             className={cn(
-              'w-1 rounded-full transition-all',
-              recording ? 'bg-foreground' : 'bg-border',
+              'w-[3px] rounded-full transition-[height,background-color] duration-100',
+              status === 'recording' ? 'bg-foreground' : 'bg-border',
             )}
             style={{
-              height: recording ? `${20 + Math.abs(Math.sin(i * 0.9)) * 70}%` : '20%',
-              animation: recording
-                ? `mem-wave 0.9s ease-in-out ${i * 0.04}s infinite alternate`
-                : 'none',
+              height:
+                status === 'recording'
+                  ? `${Math.max(8, lvl * 100)}%`
+                  : status === 'recorded'
+                    ? '14%'
+                    : '8%',
             }}
           />
         ))}
       </div>
-      <button
-        onClick={onToggle}
-        className={cn(
-          'flex items-center gap-2 border px-5 py-2.5 text-[14px] tracking-tight transition-colors duration-300 active:scale-95',
-          recording
-            ? 'border-destructive text-destructive'
-            : 'border-foreground text-foreground hover:border-gunmetal hover:text-gunmetal',
-        )}
-      >
-        {recording ? (
-          <>
-            <Square className="size-3.5 fill-current" />
-            STOP RECORDING
-          </>
-        ) : (
-          <>
-            <Mic className="size-4" />
-            START RECORDING
-          </>
-        )}
-      </button>
-      <style>{`@keyframes mem-wave{to{transform:scaleY(1.6)}}`}</style>
+
+      {/* Status / controls */}
+      {status === 'denied' ? (
+        <div className="flex flex-col items-center gap-2 text-center">
+          <p className="flex items-center gap-1.5 text-[13px] text-destructive">
+            <MicOff className="size-4" />
+            Microphone access denied
+          </p>
+          <button
+            onClick={startRecording}
+            className="border border-foreground px-4 py-2 text-[13px] tracking-tight text-foreground transition-colors hover:border-gunmetal hover:text-gunmetal active:scale-95"
+          >
+            Try again
+          </button>
+        </div>
+      ) : status === 'recorded' && audioUrl ? (
+        <div className="flex items-center gap-2.5">
+          <audio
+            ref={audioElRef}
+            src={audioUrl}
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onEnded={() => setPlaying(false)}
+            className="hidden"
+          />
+          <button
+            onClick={togglePlay}
+            className="flex items-center gap-2 border border-foreground px-5 py-2.5 text-[14px] tracking-tight text-foreground transition-colors hover:border-gunmetal hover:text-gunmetal active:scale-95"
+          >
+            {playing ? (
+              <>
+                <Pause className="size-3.5 fill-current" />
+                PAUSE
+              </>
+            ) : (
+              <>
+                <Play className="size-3.5 fill-current" />
+                PLAY
+              </>
+            )}
+          </button>
+          <button
+            onClick={reset}
+            aria-label="Record again"
+            className="flex items-center gap-2 border border-border px-4 py-2.5 text-[13px] tracking-tight text-foreground/70 transition-colors hover:border-foreground hover:text-foreground active:scale-95"
+          >
+            <RotateCcw className="size-3.5" />
+            RETAKE
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={status === 'recording' ? stopRecording : startRecording}
+          disabled={status === 'requesting'}
+          className={cn(
+            'flex items-center gap-2 border px-5 py-2.5 text-[14px] tracking-tight transition-colors duration-300 active:scale-95 disabled:opacity-60',
+            status === 'recording'
+              ? 'border-destructive text-destructive'
+              : 'border-foreground text-foreground hover:border-gunmetal hover:text-gunmetal',
+          )}
+        >
+          {status === 'requesting' ? (
+            <>
+              <span className="size-3.5 animate-spin rounded-full border border-foreground/40 border-t-foreground" />
+              ALLOW MIC ACCESS
+            </>
+          ) : status === 'recording' ? (
+            <>
+              <Square className="size-3.5 fill-current" />
+              STOP RECORDING
+            </>
+          ) : (
+            <>
+              <Mic className="size-4" />
+              START RECORDING
+            </>
+          )}
+        </button>
+      )}
+
+      <p className="h-4 text-[12px] text-foreground/45">
+        {status === 'recording'
+          ? 'Listening...'
+          : status === 'requesting'
+            ? 'Waiting for permission'
+            : status === 'recorded'
+              ? 'Review your recording'
+              : status === 'denied'
+                ? 'Enable mic in your browser settings'
+                : 'Click to speak'}
+      </p>
     </div>
   )
 }
