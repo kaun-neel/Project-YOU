@@ -11,7 +11,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'ProJect YOU — a darkroom for your mind',
+  title: 'Project YOU — a darkroom for your mind',
   description:
     'A Personal Knowledge OS set on a single dark canvas. Enter your memory and watch every idea you have ever saved connect into one living graph.',
   generator: 'v0.app',
