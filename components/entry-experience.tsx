@@ -1,187 +1,107 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { TopNav } from './top-nav'
-import { WaveText } from './ui/wave-text'
-
-/** A single clip-revealed display line — chars wave on hover. */
-function RevealLine({
-  children,
-  delay,
-  text,
-}: {
-  children?: React.ReactNode
-  delay: number
-  text?: string
-}) {
-  return (
-    <span className="block overflow-hidden pb-[0.06em]">
-      <span
-        className="block will-change-transform"
-        style={{
-          animation: `mem-reveal 0.95s cubic-bezier(0.16,1,0.3,1) ${delay}ms both`,
-        }}
-      >
-        {text ? (
-          <WaveText text={text} className="font-heading text-display-xl font-normal text-foreground" />
-        ) : (
-          children
-        )}
-      </span>
-    </span>
-  )
-}
+import { ArrowRight } from 'lucide-react'
+import { ClosingPlasma } from '@/components/ui/closing-plasma'
+import { WaveText } from '@/components/ui/wave-text'
 
 export function EntryExperience({ onEnter }: { onEnter: () => void }) {
   const [showEnter, setShowEnter] = useState(false)
   const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
-    const t = setTimeout(() => setShowEnter(true), 2400)
+    const t = setTimeout(() => setShowEnter(true), 1800)
     return () => clearTimeout(t)
   }, [])
 
   function handleEnter() {
     if (leaving) return
     setLeaving(true)
-    setTimeout(onEnter, 720)
+    setTimeout(onEnter, 800)
   }
 
   return (
     <div
-      className="relative h-dvh overflow-hidden bg-background transition-all duration-700 ease-fluid"
+      className="relative h-dvh w-full overflow-hidden"
       style={{
         opacity: leaving ? 0 : 1,
-        transform: leaving ? 'scale(1.04)' : 'scale(1)',
-        filter: leaving ? 'blur(8px)' : 'blur(0)',
+        transform: leaving ? 'scale(1.05)' : 'scale(1)',
+        filter: leaving ? 'blur(12px)' : 'blur(0)',
+        transition: 'opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1), filter 0.8s cubic-bezier(0.16,1,0.3,1)',
       }}
     >
-      <TopNav variant="landing" />
+      {/* Full-screen plasma */}
+      <ClosingPlasma
+        themeMode="dark"
+        speed={1}
+        turbulence={1}
+        mouseInfluence={1}
+        grain={1}
+        sparkle={1}
+        vignette={1}
+        opacity={1}
+        interactive
+        darkColorA="#0d0d14"
+        darkColorB="#1f2540"
+        darkColorC="#4a6191"
+        lightColorA="#f0f2f7"
+        lightColorB="#d7dceb"
+        lightColorC="#bcc5e0"
+        className="absolute inset-0 h-full w-full"
+      />
 
-      {/* Floating glass prism */}
-      <div
-        className="pointer-events-none absolute right-[-6%] top-1/2 hidden aspect-square w-[58vw] max-w-[820px] -translate-y-1/2 md:block"
-        style={{
-          animation: 'mem-blur-in 1.6s cubic-bezier(0.16,1,0.3,1) 0.1s both',
-          WebkitMaskImage: 'radial-gradient(circle at 50% 50%, black 38%, transparent 72%)',
-          maskImage: 'radial-gradient(circle at 50% 50%, black 38%, transparent 72%)',
-        }}
-      >
-        <div className="size-full" style={{ animation: 'mem-float 9s ease-in-out infinite' }}>
-          <img src="/prism-hero.png" alt="" aria-hidden="true" className="size-full object-contain opacity-90" />
-        </div>
+      {/* Top wordmark */}
+      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-7 pt-7 sm:px-10 sm:pt-9">
+        <span className="select-none text-[17px] font-normal tracking-tight text-white/90">
+          ProJect <span className="font-bold">YOU</span>
+        </span>
       </div>
 
-      {/* Mobile prism */}
-      <div
-        className="pointer-events-none absolute right-[-15%] top-[6%] aspect-square w-[80vw] md:hidden"
-        style={{
-          animation: 'mem-blur-in 1.6s cubic-bezier(0.16,1,0.3,1) 0.1s both',
-          WebkitMaskImage: 'radial-gradient(circle at 50% 50%, black 36%, transparent 70%)',
-          maskImage: 'radial-gradient(circle at 50% 50%, black 36%, transparent 70%)',
-        }}
-      >
-        <img src="/prism-hero.png" alt="" aria-hidden="true" className="size-full object-contain opacity-80" />
-      </div>
-
-      {/* Editorial composition */}
-      <div className="relative z-10 flex h-full flex-col justify-center px-5 sm:px-10">
-        <div
-          className="mb-6 sm:mb-8"
-          style={{ animation: 'mem-fade-up 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}
+      {/* Centered content */}
+      <div className="relative z-10 flex h-full flex-col items-center justify-center px-5 text-center">
+        {/* Eyebrow */}
+        <motion.p
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-5 text-[14px] tracking-[0.12em] uppercase text-white/50 sm:text-[15px]"
         >
-          <WaveText
-            text="A darkroom for the mind"
-            className="text-[15px] tracking-tight text-foreground/70 sm:text-[18px]"
-          />
-        </div>
+          <WaveText text="A darkroom for the mind" className="text-[14px] tracking-[0.12em] uppercase text-white/50" />
+        </motion.p>
 
-        <h1 className="font-heading text-display-xl max-w-[15ch] font-normal text-foreground text-balance">
-          <RevealLine delay={350} text="Everything" />
-          <RevealLine delay={520} text="you have ever" />
-          {/* Last line has mixed weight — handle manually */}
-          <span className="block overflow-hidden pb-[0.06em]">
-            <span
-              className="block will-change-transform"
-              style={{ animation: 'mem-reveal 0.95s cubic-bezier(0.16,1,0.3,1) 690ms both' }}
-            >
-              <motion.span
-                className="inline-block cursor-pointer"
-                whileHover="hover"
-                initial="initial"
-              >
-                {'known, finally '.split('').map((char, i) => (
-                  <motion.span
-                    key={i}
-                    className="inline-block"
-                    variants={{
-                      initial: { y: 0, scale: 1 },
-                      hover: {
-                        y: -4,
-                        scale: 1.15,
-                        transition: { type: 'spring', stiffness: 300, damping: 15, delay: i * 0.03 },
-                      },
-                    }}
-                  >
-                    {char === ' ' ? '\u00A0' : char}
-                  </motion.span>
-                ))}
-              </motion.span>
-              <motion.span
-                className="inline-block cursor-pointer font-bold"
-                whileHover="hover"
-                initial="initial"
-              >
-                {'remembered.'.split('').map((char, i) => (
-                  <motion.span
-                    key={i}
-                    className="inline-block"
-                    variants={{
-                      initial: { y: 0, scale: 1 },
-                      hover: {
-                        y: -4,
-                        scale: 1.15,
-                        transition: { type: 'spring', stiffness: 300, damping: 15, delay: i * 0.03 },
-                      },
-                    }}
-                  >
-                    {char}
-                  </motion.span>
-                ))}
-              </motion.span>
-            </span>
-          </span>
-        </h1>
-
-        {/* Enter button */}
-        <div className="mt-12 h-[52px] sm:mt-16">
-          <button
-            onClick={handleEnter}
-            aria-hidden={!showEnter}
-            tabIndex={showEnter ? 0 : -1}
-            className="group inline-flex items-center gap-3 rounded-[5px] border border-foreground px-6 py-3 text-[14px] tracking-tight text-foreground transition-all duration-500 ease-fluid hover:border-gunmetal hover:text-gunmetal"
-            style={{
-              opacity: showEnter ? 1 : 0,
-              transform: showEnter ? 'translateY(0)' : 'translateY(12px)',
-              pointerEvents: showEnter ? 'auto' : 'none',
-            }}
+        {/* Main headline */}
+        <div className="overflow-hidden">
+          <motion.h1
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-[16ch] text-[clamp(2.4rem,7vw,5.5rem)] font-bold leading-[1.06] tracking-tight text-white text-balance"
           >
-            <WaveText text="ENTER YOUR MEMORY" className="text-[14px] tracking-tight" />
-            <ArrowRight className="size-4 transition-transform duration-500 ease-fluid group-hover:translate-x-1" />
-          </button>
+            <WaveText
+              text="Everything you have ever known,"
+              className="block text-[clamp(2.4rem,7vw,5.5rem)] font-bold leading-[1.06] tracking-tight text-white"
+            />
+            <WaveText
+              text="finally remembered."
+              className="block text-[clamp(2.4rem,7vw,5.5rem)] font-bold leading-[1.06] tracking-tight text-white/60"
+            />
+          </motion.h1>
         </div>
 
-        {/* Bottom-right manifesto */}
-        <div
-          className="absolute bottom-8 right-5 max-w-[34ch] rounded-[6px] bg-background/55 px-4 py-3 text-right backdrop-blur-md sm:bottom-12 sm:right-10"
-          style={{ animation: 'mem-fade-up 0.9s cubic-bezier(0.16,1,0.3,1) 1.1s both' }}
-        >
-          <WaveText
-            text="Capture a thought, a paper, a voice memo. ProJect YOU refracts them into a single living graph — and hands you back the connections you forgot you made."
-            className="text-[14px] leading-[1.5] text-foreground/75 sm:text-[16px]"
-          />
+        {/* Enter button — appears after delay */}
+        <div className="mt-14 h-14">
+          <motion.button
+            onClick={handleEnter}
+            initial={{ opacity: 0, y: 16 }}
+            animate={showEnter ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            tabIndex={showEnter ? 0 : -1}
+            className="group inline-flex items-center gap-3 rounded-full border border-white/30 bg-white/8 px-7 py-3.5 text-[14px] tracking-widest uppercase text-white backdrop-blur-sm transition-all duration-500 hover:border-white/60 hover:bg-white/15"
+          >
+            <WaveText text="Enter Your Memory" className="text-[14px] tracking-widest uppercase text-white" />
+            <ArrowRight className="size-4 transition-transform duration-500 group-hover:translate-x-1" />
+          </motion.button>
         </div>
       </div>
     </div>

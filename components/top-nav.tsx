@@ -34,7 +34,7 @@ function Wordmark() {
 export function TopNav({
   variant = 'app',
   onCapture,
-  reveal = false,
+  reveal = true,
 }: {
   variant?: 'landing' | 'app'
   onCapture?: () => void
@@ -43,7 +43,7 @@ export function TopNav({
   const pathname = usePathname()
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-50">
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-[60]">
       <nav className="pointer-events-auto mx-auto flex max-w-[1600px] items-center justify-between px-5 py-5 sm:px-10 sm:py-7">
         <Wordmark />
 

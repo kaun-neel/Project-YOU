@@ -14,7 +14,8 @@ export default function Home() {
 
   useEffect(() => {
     const saved = sessionStorage.getItem(SESSION_KEY) as Stage | null
-    setStage(saved ?? 'signin')
+    // Always start fresh from signin unless already in graph
+    setStage(saved === 'graph' ? 'graph' : 'signin')
   }, [])
 
   function advance(next: Stage) {

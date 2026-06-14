@@ -9,7 +9,7 @@ function Shell({ children }: { children: ReactNode }) {
   const { openCapture } = useCapture()
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
-      <TopNav variant="app" reveal onCapture={openCapture} />
+      <TopNav variant="app" reveal={true} onCapture={openCapture} />
       {/* top padding clears the floating nav */}
       <main className="min-h-0 flex-1 overflow-hidden pt-[72px] sm:pt-[88px]">
         {children}
