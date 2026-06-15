@@ -1,0 +1,250 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* Single typeface system — Neue Montreal substitute (Inter) everywhere */
+  --font-heading: var(--font-inter), 'Inter Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), 'Inter Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-inter), 'Inter Fallback', ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-carbon: var(--carbon);
+  --color-obsidian: var(--obsidian);
+  --color-graphite: var(--graphite);
+  --color-gunmetal: var(--gunmetal);
+  --color-bone: var(--bone);
+
+  --color-surface: var(--surface);
+  --color-node-note: var(--node-note);
+  --color-node-url: var(--node-url);
+  --color-node-pdf: var(--node-pdf);
+  --color-node-voice: var(--node-voice);
+
+  --radius-sm: 0px;
+  --radius-md: 5px;
+  --radius-lg: 5px;
+  --radius-xl: 15px;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Core palette — darkroom editorial spread */
+  --bone: #fffdf9;
+  --gunmetal: #6f879c;
+  --carbon: #101010;
+  --obsidian: #000000;
+  --graphite: #403f3f;
+  --slate: #495764;
+
+  /* Semantic */
+  --background: #2e3a42;
+  --foreground: #fffdf9;
+  --surface: #364249;
+  --card: #364249;
+  --card-foreground: #fffdf9;
+  --popover: #1c2428;
+  --popover-foreground: #fffdf9;
+
+  --primary: #7a95aa;
+  --primary-foreground: #fffdf9;
+  --secondary: #3d4e58;
+  --secondary-foreground: #fffdf9;
+  --muted: #3d4e58;
+  --muted-foreground: #a3b8c6;
+  --accent: #7a95aa;
+  --accent-foreground: #fffdf9;
+  --destructive: #c98b8b;
+
+  --border: #455460;
+  --input: #455460;
+  --ring: #7a95aa;
+
+  /* Knowledge-graph node tints — monochrome bone → gunmetal */
+  --node-note: #fffdf9;
+  --node-url: #cdd6dd;
+  --node-pdf: #a3b2bf;
+  --node-voice: #6f879c;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    background-color: var(--background);
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--gunmetal);
+    color: var(--bone);
+  }
+}
+
+@layer utilities {
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  /* Display typography — pressed against the canvas */
+  .text-display-xl {
+    font-size: clamp(52px, 13vw, 136px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .text-display {
+    font-size: clamp(42px, 9vw, 105px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .text-heading {
+    font-size: clamp(32px, 5vw, 56px);
+    line-height: 1.13;
+    letter-spacing: -0.02em;
+  }
+  .text-heading-sm {
+    font-size: clamp(24px, 3.4vw, 36px);
+    line-height: 1.17;
+    letter-spacing: -0.01em;
+  }
+
+  .ease-fluid {
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Scrollbar */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gunmetal) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--gunmetal) 55%, transparent);
+  }
+  .scroll-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ── Motion ──────────────────────────────────────────── */
+@keyframes moveBackground {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 0% -1000%;
+  }
+}
+
+@keyframes mem-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: mem-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes mem-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-scale-in {
+  animation: mem-scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes mem-pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  80%,
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+.animate-pulse-ring {
+  animation: mem-pulse-ring 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes mem-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(110%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mem-blur-in {
+  from {
+    opacity: 0;
+    filter: blur(16px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes mem-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-16px) rotate(1.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
